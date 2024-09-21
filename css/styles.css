@@ -1,0 +1,8 @@
+
+/* For Card Images */
+.card-body img {
+    width: 100%; /* Ensures the image takes up the full width of its container */
+    height: 200px; /* Sets a fixed height for all images */
+    object-fit: cover; /* Ensures the image covers the container while maintaining aspect ratio */
+    border-radius: 8px; /* Optional: Adds rounded corners to images */
+}

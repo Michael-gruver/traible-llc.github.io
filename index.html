@@ -15,6 +15,16 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="CSS/styles.css">
     <style>
+        .navbar {
+            background-color: #000;
+            box-shadow: 0 4px 8px rgb(131, 169, 210);
+            padding: 1.5rem;
+            font-size: 1.25rem;
+        }
+        .navbar-brand img {
+            width: 50px;
+            height: 50px;
+        }
         .section {
             display: flex;
             justify-content: center;
@@ -25,6 +35,11 @@
             background-color: black;
             color: white;
             height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-top: 100px;
         }
         .section-2 {
             background-color: #83a9d2;
@@ -41,7 +56,7 @@
             color: white;
         }
         .section-4 {
-            background-color: #c9c9c977;
+            background-color: #343a40;
             color: rgb(0, 0, 0);
             margin: 0;
             display: flex;
@@ -89,26 +104,75 @@
     transform: translateY(-50%);
     width: 3px;
     height: 50%; /* Adjust the height as needed */
-    background-color: #83a9d2;
+    background-color: rgb(131, 169, 210);
 }
 
+.footer {
+    background-color: #343a40;
+    color: #ffffff;
+    padding: 20px 0;
+}
+.footer a {
+    color: #ffffff;
+    text-decoration: none;
+}
+.footer a:hover {
+    color: #83a9d2;
+}
+
+.scroll-indicator {
+    margin-top: 20px;
+    font-size: 1.2em;
+    color: #ffffff;
+}
 
     </style>
 </head>
 <body> 
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="img/logo.png" alt="Logo">
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#section-2">About Us</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#section-3">Meet the Team</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <!-- Section 1 -->
     <div class="container-fluid section section-1">
         <div class="container">
             <img src="img/Traible.png" alt="Centered Image" class="img-fluid mb-4" width="40%" height="40%">
             <div class="container">
-                <a>Know your tribe.</a>
+                <p style="font-size: 1.5em; font-family: Arial, sans-serif;">Know your tribe.</p>
+                <br>
+                <br>
+                <br>
+                <br>
+                <h2>Unlock Your Organization's Expert Knowledge</h2>
+                <p style="font-size: 1.5em; font-family: Arial, sans-serif;">Transform undocumented expertise into a powerful, accessible asset for your entire team.</p>
+                <br>
+                <div class="scroll-indicator">
+                    <p>Scroll down to learn more!</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Section 2 -->
-    <div class="container-fluid section section-2">
+    <div id="section-2" class="container-fluid section section-2">
       <div class="container text-center">
           <h2 class="display-4">About Us</h2>
           <br>
@@ -126,7 +190,7 @@
 
 
     <!-- Section 3 -->
-    <div class="container-fluid section-3 full-height d-flex flex-column">
+    <div id="section-3" class="container-fluid section-3 full-height d-flex flex-column">
         <div class="container py-3">
             <br>
             <br>

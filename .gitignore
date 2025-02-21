@@ -1,0 +1,10 @@
+vnev/
+*.pyc
+__pycache__/
+.env
+db.sqlite3
+/static
+/media
+vector_stories/
+.DS_Store
+

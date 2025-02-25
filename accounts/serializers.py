@@ -48,8 +48,7 @@ class SignupSerializer(serializers.ModelSerializer):
             if username_exists:
                 errors['username'] = 'This username is already taken'
             raise serializers.ValidationError({
-                'message': 'Validation failed',
-                'details': errors
+                'error': errors
             })
         
         return data

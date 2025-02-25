@@ -10,7 +10,7 @@ from .models import Document, Conversation, Message
 from .services.bedrock_service import BedrockService
 from django.conf import settings
 import mimetypes
-
+import magic
 class DocumentUploadView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -21,7 +21,10 @@ class DocumentUploadView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
             
         file = request.FILES['file']
-        content_type = mimetypes.guess_type(file.name)[0]
+        
+        mime = magic.Magic(mime=True)
+        content_type = mime.from_buffer(file.read())
+        file.seek(0)  # Reset file pointer
         
         if content_type != 'application/pdf':
             return Response({
@@ -55,32 +58,84 @@ class DocumentUploadView(APIView):
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# chatbot/views.py (updated ChatView)
+
 class ChatView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        conversation_id = request.data.get('conversation_id')
         message = request.data.get('message')
         document_ids = request.data.get('document_ids', [])
+        conversation_id = request.data.get('conversation_id')
         
         if not message:
             return Response({
                 'message': 'Message is required'
             }, status=status.HTTP_400_BAD_REQUEST)
             
+        if not document_ids:
+            return Response({
+                'message': 'At least one document ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
         try:
-            # Get or create conversation
+            # Verify all documents exist and are processed
+            for doc_id in document_ids:
+                try:
+                    doc = Document.objects.get(id=doc_id, user=request.user)
+                    if not doc.is_processed:
+                        return Response({
+                            'message': f'Document {doc_id} is not processed yet. Please wait and try again.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                except Document.DoesNotExist:
+                    return Response({
+                        'message': f'Document {doc_id} not found'
+                    }, status=status.HTTP_404_NOT_FOUND)
+            
+            # If conversation_id is provided, check if it exists
             if conversation_id:
-                conversation = get_object_or_404(
-                    Conversation, 
-                    id=conversation_id,
-                    user=request.user
-                )
+                try:
+                    conversation = Conversation.objects.get(
+                        id=conversation_id,
+                        user=request.user
+                    )
+                    
+                    # Get existing document IDs from conversation
+                    existing_document_ids = set()
+                    for msg in Message.objects.filter(conversation=conversation, role='assistant'):
+                        if msg.references and 'documents' in msg.references:
+                            existing_document_ids.update(msg.references['documents'])
+                    
+                    # Check if new documents are being added
+                    new_document_ids = set(document_ids) - existing_document_ids
+                    if new_document_ids:
+                        # Allow new documents to be added to conversation
+                        pass  # This is fine - we'll proceed with the existing conversation
+                        
+                except Conversation.DoesNotExist:
+                    return Response({
+                        'message': 'Conversation not found'
+                    }, status=status.HTTP_404_NOT_FOUND)
             else:
-                conversation = Conversation.objects.create(
+                # No conversation_id provided, check for existing conversation with these documents
+                # Sort document_ids to ensure consistent lookup
+                document_key = '-'.join(sorted(document_ids))
+                
+                # Look for existing conversation with these exact documents
+                conversation = Conversation.objects.filter(
                     user=request.user,
-                    title=message[:50]  # Use first 50 chars as title
-                )
+                    document_key=document_key
+                ).first()
+                
+                # If no conversation exists, create a new one
+                if not conversation:
+                    # Get the first document title to use as conversation title
+                    first_doc = Document.objects.get(id=document_ids[0])
+                    conversation = Conversation.objects.create(
+                        user=request.user,
+                        title=first_doc.title[:50],  # Use document name as title
+                        document_key=document_key
+                    )
             
             # Save user message
             Message.objects.create(
@@ -112,7 +167,7 @@ class ChatView(APIView):
                 content=response_text,
                 role='assistant',
                 references={
-                    'documents': [str(doc_id) for doc_id in document_ids],
+                    'documents': document_ids,
                     'contexts': [doc.page_content for doc in relevant_docs]
                 }
             )
@@ -120,14 +175,13 @@ class ChatView(APIView):
             return Response({
                 'conversation_id': conversation.id,
                 'message': response_text,
-                'references': assistant_message.references
+                'document_ids': document_ids
             })
             
         except Exception as e:
             return Response({
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 class ConversationHistoryView(APIView):
     permission_classes = [IsAuthenticated]
     

@@ -7,6 +7,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PyPDFLoader  # Updated import
 import json
 import os
+from pdf2image import convert_from_path
+import pytesseract
+from PyPDF2 import PdfReader
+import tempfile
 
 class BedrockService:
     def __init__(self):
@@ -28,37 +32,72 @@ class BedrockService:
             chunk_size=1000,
             chunk_overlap=200
         )
+        
+    def extract_text_from_pdf(self, pdf_path):
+        """Extract text from PDF using multiple methods"""
+        extracted_text = ""
+        
+        # Try direct text extraction first
+        try:
+            reader = PdfReader(pdf_path)
+            for page in reader.pages:
+                text = page.extract_text()
+                if text.strip():
+                    extracted_text += text + "\n"
+        except Exception as e:
+            print(f"Error in direct text extraction: {e}")
 
+        # If no text found, try OCR
+        if not extracted_text.strip():
+            try:
+                # Convert PDF to images
+                images = convert_from_path(pdf_path)
+                for image in images:
+                    text = pytesseract.image_to_string(image)
+                    extracted_text += text + "\n"
+            except Exception as e:
+                print(f"Error in OCR processing: {e}")
+
+        return extracted_text
+
+    
     def process_document(self, document):
         """Process document and create embeddings"""
         try:
-            # Load document
-            if document.content_type == 'application/pdf':
-                loader = PyPDFLoader(document.file.path)
-                pages = loader.load()
-                
-                # Split into chunks
-                texts = self.text_splitter.split_documents(pages)
-                
-                # Create vector store
-                vector_store = FAISS.from_documents(texts, self.embeddings)
-                
-                # Save vector store
-                store_path = f'vector_stores/{document.id}'
-                os.makedirs(store_path, exist_ok=True)
-                vector_store.save_local(store_path)
-                
-                document.vector_store_path = store_path
-                document.is_processed = True
+            # Extract text from PDF
+            extracted_text = self.extract_text_from_pdf(document.file.path)
+            
+            if not extracted_text.strip():
+                document.processing_error = "No text could be extracted from the document"
                 document.save()
-                
-                return True
-            else:
-                raise ValueError(f"Unsupported file type: {document.content_type}")
-                
+                return False
+
+            # Save extracted text
+            document.raw_text = extracted_text
+            
+            # Create text chunks
+            texts = self.text_splitter.split_text(extracted_text)
+            
+            # Create vector store
+            vector_store = FAISS.from_texts(texts, self.embeddings)
+            
+            # Save vector store
+            store_path = f'vector_stores/{document.id}'
+            os.makedirs(store_path, exist_ok=True)
+            vector_store.save_local(store_path)
+            
+            # Update document
+            document.vector_store_path = store_path
+            document.is_processed = True
+            document.save()
+            
+            return True
+            
         except Exception as e:
-            print(f"Error processing document: {str(e)}")
+            document.processing_error = str(e)
+            document.save()
             return False
+
 
     def get_response(self, question, context, conversation_history=None):
         """Generate response using Claude with guardrails"""
@@ -111,12 +150,15 @@ class BedrockService:
         results = []
         
         for doc_id in document_ids:
-            vector_store = FAISS.load_local(
-                f'vector_stores/{doc_id}',
-                self.embeddings,
-                allow_dangerous_deserialization=True
-            )
-            docs = vector_store.similarity_search(query, k=2)
-            results.extend(docs)
-        
+            try:
+                vector_store = FAISS.load_local(
+                    f'vector_stores/{doc_id}',
+                    self.embeddings,
+                    allow_dangerous_deserialization=True
+                )
+                docs = vector_store.similarity_search(query, k=2)
+                results.extend(docs)
+            except Exception as e:
+                print(f"Error searching document {doc_id}: {e}")
+                
         return results

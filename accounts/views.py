@@ -28,8 +28,9 @@ class SignupView(APIView):
                 'exp': datetime.utcnow() + timedelta(days=1)
             }, settings.SECRET_KEY, algorithm='HS256')
             
-            # # Send verification email
-            # verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+            # Send verification email
+            verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+            print(f"Verification URL: {verification_url}")
             # send_mail(
             #     'Verify your email',
             #     f'Click here to verify your email: {verification_url}',
@@ -37,8 +38,13 @@ class SignupView(APIView):
             #     [user.email]
             # )
             
+            # Optionally auto-verify user for development
+            user.is_verified = True
+            user.save()
+            
             return Response({
-                'message': 'Registration successful. Please verify your email.'
+                'message': 'Registration successful. Please verify your email.',
+                # 'verification_url': verification_url  # Only for development
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

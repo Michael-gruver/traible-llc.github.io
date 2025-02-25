@@ -13,6 +13,8 @@ class Document(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_processed = models.BooleanField(default=False)
     vector_store_path = models.CharField(max_length=255, null=True, blank=True)
+    raw_text = models.TextField(null=True, blank=True)  # Store extracted text
+    processing_error = models.TextField(null=True, blank=True)  # Store any processing errors
 
     class Meta:
         db_table = 'documents'
@@ -22,9 +24,13 @@ class Conversation(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    document_key = models.CharField(max_length=255, null=True, blank=True)  # Added field
+    updated_at = models.DateTimeField(auto_now=True)  # Added to track last activity
     class Meta:
         db_table = 'conversations'
+        indexes = [
+            models.Index(fields=['document_key']),  # Add index for faster lookup
+        ]
 
 class Message(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

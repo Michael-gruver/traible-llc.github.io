@@ -15,16 +15,15 @@ class DocumentUploadView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
+        conversation_id = request.data.get('conversation_id')  # Add this to accept a conversation ID
+        
         if 'file' not in request.FILES:
             return Response({
                 'message': 'No file provided'
             }, status=status.HTTP_400_BAD_REQUEST)
             
         file = request.FILES['file']
-        
-        mime = magic.Magic(mime=True)
-        content_type = mime.from_buffer(file.read())
-        file.seek(0)  # Reset file pointer
+        content_type = mimetypes.guess_type(file.name)[0]
         
         if content_type != 'application/pdf':
             return Response({
@@ -43,10 +42,75 @@ class DocumentUploadView(APIView):
             # Process document
             bedrock = BedrockService()
             if bedrock.process_document(document):
-                return Response({
-                    'message': 'Document uploaded and processed successfully',
-                    'document_id': document.id
-                })
+                # If conversation_id provided, add document to that conversation
+                if conversation_id:
+                    try:
+                        conversation = Conversation.objects.get(
+                            id=conversation_id,
+                            user=request.user
+                        )
+                        
+                        # Add system message to record document upload
+                        Message.objects.create(
+                            conversation=conversation,
+                            content=f"Document uploaded: {document.title}",
+                            role='system',
+                            references={
+                                'documents': [str(document.id)],
+                                'contexts': [],
+                                'event_type': 'document_upload'
+                            }
+                        )
+                        
+                        return Response({
+                            'message': 'Document uploaded and added to conversation successfully',
+                            'document_id': document.id,
+                            'conversation_id': conversation.id
+                        })
+                        
+                    except Conversation.DoesNotExist:
+                        return Response({
+                            'message': 'Conversation not found'
+                        }, status=status.HTTP_404_NOT_FOUND)
+                
+                # Create new conversation if no conversation_id provided
+                else:
+                    document_key = document.id
+                    conversation = Conversation.objects.create(
+                        user=request.user,
+                        title=document.title[:50],
+                        document_key=document_key
+                    )
+                    
+                    # Add system message to record document upload
+                    Message.objects.create(
+                        conversation=conversation,
+                        content=f"Document uploaded: {document.title}",
+                        role='system',
+                        references={
+                            'documents': [str(document.id)],
+                            'contexts': [],
+                            'event_type': 'document_upload'
+                        }
+                    )
+                    
+                    # Add greeting message for new conversations
+                    greeting_message = Message.objects.create(
+                        conversation=conversation,
+                        content="How can I assist you with this document today?",
+                        role='assistant',
+                        references={
+                            'documents': [str(document.id)],
+                            'contexts': []
+                        }
+                    )
+                    
+                    return Response({
+                        'message': 'Document uploaded and processed successfully',
+                        'document_id': document.id,
+                        'conversation_id': conversation.id,
+                        'greeting': greeting_message.content
+                    })
             else:
                 document.delete()
                 return Response({
@@ -57,7 +121,6 @@ class DocumentUploadView(APIView):
             return Response({
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 # chatbot/views.py (updated ChatView)
 
 class ChatView(APIView):
@@ -92,48 +155,32 @@ class ChatView(APIView):
                         'message': f'Document {doc_id} not found'
                     }, status=status.HTTP_404_NOT_FOUND)
             
-            # If conversation_id is provided, check if it exists
+            # If conversation_id is provided, use it
             if conversation_id:
                 try:
                     conversation = Conversation.objects.get(
                         id=conversation_id,
                         user=request.user
                     )
-                    
-                    # Get existing document IDs from conversation
-                    existing_document_ids = set()
-                    for msg in Message.objects.filter(conversation=conversation, role='assistant'):
-                        if msg.references and 'documents' in msg.references:
-                            existing_document_ids.update(msg.references['documents'])
-                    
-                    # Check if new documents are being added
-                    new_document_ids = set(document_ids) - existing_document_ids
-                    if new_document_ids:
-                        # Allow new documents to be added to conversation
-                        pass  # This is fine - we'll proceed with the existing conversation
-                        
                 except Conversation.DoesNotExist:
                     return Response({
                         'message': 'Conversation not found'
                     }, status=status.HTTP_404_NOT_FOUND)
             else:
-                # No conversation_id provided, check for existing conversation with these documents
-                # Sort document_ids to ensure consistent lookup
+                # No conversation_id provided, check if one was already created during upload
                 document_key = '-'.join(sorted(document_ids))
-                
-                # Look for existing conversation with these exact documents
                 conversation = Conversation.objects.filter(
                     user=request.user,
                     document_key=document_key
                 ).first()
                 
-                # If no conversation exists, create a new one
+                # If no conversation exists, something went wrong (should have been created at upload)
                 if not conversation:
-                    # Get the first document title to use as conversation title
+                    # Fallback: create a new one
                     first_doc = Document.objects.get(id=document_ids[0])
                     conversation = Conversation.objects.create(
                         user=request.user,
-                        title=first_doc.title[:50],  # Use document name as title
+                        title=first_doc.title[:50],
                         document_key=document_key
                     )
             
@@ -177,7 +224,7 @@ class ChatView(APIView):
                 'message': response_text,
                 'document_ids': document_ids
             })
-            
+                
         except Exception as e:
             return Response({
                 'message': str(e)
@@ -194,22 +241,54 @@ class ConversationHistoryView(APIView):
                     id=conversation_id,
                     user=request.user
                 )
+                
+                # Get all messages
                 messages = Message.objects.filter(
                     conversation=conversation
                 ).order_by('created_at')
+                
+                # Create a timeline of events
+                timeline = []
+                document_added = set()
+                
+                # Go through messages chronologically
+                for msg in messages:
+                    # Check if this message references any new documents
+                    if msg.role == 'assistant' and msg.references and 'documents' in msg.references:
+                        for doc_id in msg.references['documents']:
+                            if doc_id not in document_added:
+                                # This is the first mention of this document
+                                try:
+                                    doc = Document.objects.get(id=doc_id)
+                                    timeline.append({
+                                        'type': 'document_added',
+                                        'document_id': doc_id,
+                                        'document_title': doc.title,
+                                        'created_at': doc.created_at,
+                                        'event_time': msg.created_at  # Use message time as event time
+                                    })
+                                    document_added.add(doc_id)
+                                except Document.DoesNotExist:
+                                    pass
+                    
+                    # Add the message to timeline
+                    timeline.append({
+                        'type': 'message',
+                        'id': msg.id,
+                        'content': msg.content,
+                        'role': msg.role,
+                        'created_at': msg.created_at
+                    })
+                
+                # Sort timeline by timestamp
+                timeline.sort(key=lambda x: x.get('event_time', x.get('created_at')))
                 
                 return Response({
                     'conversation': {
                         'id': conversation.id,
                         'title': conversation.title,
                         'created_at': conversation.created_at,
-                        'messages': [{
-                            'id': msg.id,
-                            'content': msg.content,
-                            'role': msg.role,
-                            'created_at': msg.created_at,
-                            'references': msg.references
-                        } for msg in messages]
+                        'timeline': timeline
                     }
                 })
             else:
@@ -218,13 +297,41 @@ class ConversationHistoryView(APIView):
                     user=request.user
                 ).order_by('-created_at')
                 
-                return Response({
-                    'conversations': [{
+                conversation_data = []
+                for conv in conversations:
+                    # Get document info for this conversation
+                    documents = []
+                    doc_ids = set()
+                    
+                    # Find all referenced documents in this conversation
+                    for msg in Message.objects.filter(conversation=conv, role='assistant'):
+                        if msg.references and 'documents' in msg.references:
+                            doc_ids.update(msg.references['documents'])
+                    
+                    # Get titles for documents
+                    for doc_id in doc_ids:
+                        try:
+                            doc = Document.objects.get(id=doc_id)
+                            documents.append({
+                                'id': doc_id,
+                                'title': doc.title
+                            })
+                        except Document.DoesNotExist:
+                            documents.append({
+                                'id': doc_id,
+                                'title': "Unknown document"
+                            })
+                    
+                    conversation_data.append({
                         'id': conv.id,
                         'title': conv.title,
                         'created_at': conv.created_at,
-                        'message_count': conv.message_set.count()
-                    } for conv in conversations]
+                        'message_count': conv.message_set.count(),
+                        'documents': documents
+                    })
+                
+                return Response({
+                    'conversations': conversation_data
                 })
                 
         except Exception as e:

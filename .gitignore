@@ -9,3 +9,7 @@ vector_stories/
 .DS_Store
 **/migrations/*.py
 !**/migrations/__init__.pys
+# Ignore vector stores
+vector_stores/
+**/vector_stores/
+**/vector_stores/**/*

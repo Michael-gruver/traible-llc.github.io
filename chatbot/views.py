@@ -399,4 +399,36 @@ class ConversationHistoryView(APIView):
             return Response({
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ConversationDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request, conversation_id):
+        try:
+            # Find the conversation for the current authenticated user
+            conversation = get_object_or_404(
+                Conversation, 
+                id=conversation_id, 
+                user=request.user
+            )
+            
+            # Delete all associated messages
+            Message.objects.filter(conversation=conversation).delete()
+            
+            # Delete the conversation
+            conversation.delete()
+            
+            return Response({
+                'message': 'Conversation deleted successfully'
+            }, status=status.HTTP_200_OK)
+        
+        except Conversation.DoesNotExist:
+            return Response({
+                'message': 'Conversation not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'message': 'Error deleting conversation',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             

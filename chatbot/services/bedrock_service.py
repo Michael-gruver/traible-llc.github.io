@@ -11,7 +11,10 @@ from pdf2image import convert_from_path
 import pytesseract
 from PyPDF2 import PdfReader
 import tempfile
+<<<<<<< HEAD
 import time
+=======
+>>>>>>> 67837f23df8744968ec77d32158f78eabc362cf4
 
 class BedrockService:
     def __init__(self):
@@ -100,6 +103,7 @@ class BedrockService:
             return False
 
 
+<<<<<<< HEAD
     def get_response(self, question, context, conversation_history=None, stream=False):
         """
         Generate response using Claude with guardrails
@@ -121,14 +125,28 @@ class BedrockService:
                     return
                 else:
                     return "No relevant context found in the documents. Please check if the document was processed correctly."
+=======
+    def get_response(self, question, context, conversation_history=None):
+        """Generate response using Claude with guardrails"""
+        try:
+            if not context.strip():
+                return "No relevant context found in the documents. Please check if the document was processed correctly."
+>>>>>>> 67837f23df8744968ec77d32158f78eabc362cf4
             
             # Create messages array
             messages = []
             
+<<<<<<< HEAD
             # Add the initial user message with context and bullet point instruction
             messages.append({
                 "role": "user",
                 "content": f"Here is the context from the documents:\n\n{context}\n\nQuestion: {question}\n\nPlease format your response in bullet points whenever possible. Each point should start with a bullet (•) and contain a single clear idea or piece of information."
+=======
+            # Add the initial user message with context
+            messages.append({
+                "role": "user",
+                "content": f"Here is the context from the documents:\n\n{context}\n\nQuestion: {question}"
+>>>>>>> 67837f23df8744968ec77d32158f78eabc362cf4
             })
 
             # Add conversation history while ensuring alternating roles
@@ -150,6 +168,7 @@ class BedrockService:
                 "temperature": 0.7
             })
             
+<<<<<<< HEAD
             if stream:
                 # Use streaming API
                 response_stream = self.bedrock_runtime.invoke_model_with_response_stream(
@@ -188,6 +207,19 @@ class BedrockService:
                 return None
             else:
                 raise
+=======
+            response = self.bedrock_runtime.invoke_model(
+                modelId="anthropic.claude-3-sonnet-20240229-v1:0",
+                body=body
+            )
+        
+            response_body = json.loads(response['body'].read())
+            return response_body['content'][0]['text']
+            
+        except Exception as e:
+            print(f"Error in get_response: {str(e)}")
+            raise
+>>>>>>> 67837f23df8744968ec77d32158f78eabc362cf4
 
     def search_documents(self, query, document_ids):
         """Search across multiple documents"""
@@ -205,6 +237,10 @@ class BedrockService:
             except Exception as e:
                 print(f"Error searching document {doc_id}: {e}")
                 
+<<<<<<< HEAD
         return results
     
     
+=======
+        return results
+>>>>>>> 67837f23df8744968ec77d32158f78eabc362cf4

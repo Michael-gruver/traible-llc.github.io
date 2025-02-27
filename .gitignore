@@ -1,0 +1,15 @@
+vnev/
+*.pyc
+__pycache__/
+.env
+db.sqlite3
+/static
+/media
+vector_stories/
+.DS_Store
+**/migrations/*.py
+!**/migrations/__init__.pys
+# Ignore vector stores
+vector_stores/
+**/vector_stores/
+**/vector_stores/**/*

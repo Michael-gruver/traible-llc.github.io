@@ -432,3 +432,31 @@ class ConversationDeleteView(APIView):
                 'details': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
+
+class UserDocumentsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Retrieve all documents uploaded by the user
+            documents = Document.objects.filter(
+                user=request.user
+            ).order_by('-created_at')
+            
+            # Serialize document information
+            document_data = [{
+                'id': doc.id,
+                'title': doc.title,
+                'is_processed': doc.is_processed,
+                'created_at': doc.created_at,
+                'content_type': doc.content_type
+            } for doc in documents]
+            
+            return Response({
+                'documents': document_data
+            })
+        
+        except Exception as e:
+            return Response({
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -17,8 +17,6 @@ class DocumentUploadView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        conversation_id = request.data.get('conversation_id')  # Add this to accept a conversation ID
-        
         if 'file' not in request.FILES:
             return Response({
                 'message': 'No file provided'
@@ -33,97 +31,47 @@ class DocumentUploadView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            bedrock = BedrockService()
+            file_hash = bedrock.calculate_file_hash(file)
+
+            existing_document = Document.objects.filter(
+                user=request.user,
+                file_hash = file_hash
+            ).first()
+
+            if existing_document:
+                return Response({
+                    'message':'Document with this name already exists',
+                    'document_id': existing_document.id,
+                    'is_processed': existing_document.is_processed
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
             # Save document
             document = Document.objects.create(
                 user=request.user,
                 title=file.name,
                 file=file,
-                content_type=content_type
+                content_type=content_type,
+                file_hash=file_hash
             )
             
-            # Process document
-            bedrock = BedrockService()
             if bedrock.process_document(document):
-                # If conversation_id provided, add document to that conversation
-                if conversation_id:
-                    try:
-                        conversation = Conversation.objects.get(
-                            id=conversation_id,
-                            user=request.user
-                        )
-                        
-                        # Add system message to record document upload
-                        Message.objects.create(
-                            conversation=conversation,
-                            content=f"Document uploaded: {document.title}",
-                            role='system',
-                            references={
-                                'documents': [str(document.id)],
-                                'contexts': [],
-                                'event_type': 'document_upload'
-                            }
-                        )
-                        
-                        return Response({
-                            'message': 'Document uploaded and added to conversation successfully',
-                            'document_id': document.id,
-                            'conversation_id': conversation.id
-                        })
-                        
-                    except Conversation.DoesNotExist:
-                        return Response({
-                            'message': 'Conversation not found'
-                        }, status=status.HTTP_404_NOT_FOUND)
-                
-                # Create new conversation if no conversation_id provided
-                else:
-                    document_key = document.id
-                    conversation = Conversation.objects.create(
-                        user=request.user,
-                        title=document.title[:50],
-                        document_key=document_key
-                    )
-                    
-                    # Add system message to record document upload
-                    Message.objects.create(
-                        conversation=conversation,
-                        content=f"Document uploaded: {document.title}",
-                        role='system',
-                        references={
-                            'documents': [str(document.id)],
-                            'contexts': [],
-                            'event_type': 'document_upload'
-                        }
-                    )
-                    
-                    # Add greeting message for new conversations
-                    greeting_message = Message.objects.create(
-                        conversation=conversation,
-                        content="How can I assist you with this document today?",
-                        role='assistant',
-                        references={
-                            'documents': [str(document.id)],
-                            'contexts': []
-                        }
-                    )
-                    
-                    return Response({
-                        'message': 'Document uploaded and processed successfully',
-                        'document_id': document.id,
-                        'conversation_id': conversation.id,
-                        'greeting': greeting_message.content
-                    })
+                user_vector_store_path = bedrock.create_or_update_user_vector_store(request.user, document)
+
+                return Response({
+                    'message':'Document uploaded and processed successfully',
+                    'document_id':document.id
+                })
             else:
                 document.delete()
                 return Response({
-                    'message': 'Error processing document'
+                    'message':'Error processing document',
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+        
         except Exception as e:
             return Response({
                 'message': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-# chatbot/views.py (updated ChatView)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)# chatbot/views.py (updated ChatView)
 
 class ChatView(APIView):
     permission_classes = [IsAuthenticated]

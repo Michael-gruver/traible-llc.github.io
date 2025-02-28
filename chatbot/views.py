@@ -250,24 +250,47 @@ class ConversationHistoryView(APIView):
                 
                 conversation_data = []
                 for conv in conversations:
-                    # Get first user message as title if no explicit title
+                    # Get first user message as title
                     first_message = Message.objects.filter(
                         conversation=conv, 
                         role='user'
                     ).order_by('created_at').first()
+                    
+                    # Find all referenced documents in this conversation
+                    documents = []
+                    doc_ids = set()
+                    
+                    # Find all referenced documents in this conversation
+                    for msg in Message.objects.filter(conversation=conv, role='assistant'):
+                        if msg.references and 'documents' in msg.references:
+                            doc_ids.update(msg.references['documents'])
+                    
+                    # Get titles for documents
+                    for doc_id in doc_ids:
+                        try:
+                            doc = Document.objects.get(id=doc_id)
+                            documents.append({
+                                'id': doc_id,
+                                'title': doc.title
+                            })
+                        except Document.DoesNotExist:
+                            documents.append({
+                                'id': doc_id,
+                                'title': "Unknown document"
+                            })
                     
                     conversation_data.append({
                         'id': conv.id,
                         'title': first_message.content[:50] if first_message else conv.title,
                         'created_at': conv.created_at,
                         'message_count': conv.message_set.count(),
-                        'documents': self.get_conversation_documents(conv)
+                        'documents': documents
                     })
                 
                 return Response({
                     'conversations': conversation_data
                 })
-                
+            
             if conversation_id:
                 # Get specific conversation
                 conversation = get_object_or_404(
@@ -320,54 +343,12 @@ class ConversationHistoryView(APIView):
                 return Response({
                     'conversation': {
                         'id': conversation.id,
-                        'title': conversation.title,
+                        'title': messages.filter(role='user').first().content[:50] if messages.filter(role='user').exists() else conversation.title,
                         'created_at': conversation.created_at,
                         'timeline': timeline
                     }
                 })
-            else:
-                # Get all conversations
-                conversations = Conversation.objects.filter(
-                    user=request.user
-                ).order_by('-created_at')
-                
-                conversation_data = []
-                for conv in conversations:
-                    # Get document info for this conversation
-                    documents = []
-                    doc_ids = set()
-                    
-                    # Find all referenced documents in this conversation
-                    for msg in Message.objects.filter(conversation=conv, role='assistant'):
-                        if msg.references and 'documents' in msg.references:
-                            doc_ids.update(msg.references['documents'])
-                    
-                    # Get titles for documents
-                    for doc_id in doc_ids:
-                        try:
-                            doc = Document.objects.get(id=doc_id)
-                            documents.append({
-                                'id': doc_id,
-                                'title': doc.title
-                            })
-                        except Document.DoesNotExist:
-                            documents.append({
-                                'id': doc_id,
-                                'title': "Unknown document"
-                            })
-                    
-                    conversation_data.append({
-                        'id': conv.id,
-                        'title': conv.title,
-                        'created_at': conv.created_at,
-                        'message_count': conv.message_set.count(),
-                        'documents': documents
-                    })
-                
-                return Response({
-                    'conversations': conversation_data
-                })
-                
+            
         except Exception as e:
             return Response({
                 'message': str(e)

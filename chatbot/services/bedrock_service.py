@@ -11,6 +11,7 @@ from pdf2image import convert_from_path
 import pytesseract
 from PyPDF2 import PdfReader
 import tempfile
+import hashlib
 
 class BedrockService:
     def __init__(self):
@@ -32,7 +33,49 @@ class BedrockService:
             chunk_size=1000,
             chunk_overlap=200
         )
-        
+
+    def calculate_file_hash(self, file):
+        """Calculate MD5 hash of file"""
+        hash_md5 = hashlib.md5()
+        for chunk in file.chunks():
+            hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+
+    def create_or_update_user_vector_store(self, user, document):
+        """Create or update user-level vector store"""
+        try:
+            # Ensure raw text exists
+            if not document.raw_text:
+                return None
+
+            # Path for user vector store
+            user_store_path = f'vector_stores/users/{user.id}'
+            os.makedirs(user_store_path, exist_ok=True)
+
+            # Try to load existing user vector store
+            try:
+                user_vector_store = FAISS.load_local(
+                    user_store_path, 
+                    self.embeddings,
+                    allow_dangerous_deserialization=True
+                )
+                # Add new document text to existing store
+                user_vector_store.add_texts([document.raw_text])
+            except Exception:
+                # If no existing store, create new
+                user_vector_store = FAISS.from_texts(
+                    [document.raw_text], 
+                    self.embeddings
+                )
+
+            # Save updated vector store
+            user_vector_store.save_local(user_store_path)
+            return user_store_path
+
+        except Exception as e:
+            print(f"Error in user vector store management: {e}")
+            return None
+            
     def extract_text_from_pdf(self, pdf_path):
         """Extract text from PDF using multiple methods"""
         extracted_text = ""
@@ -187,6 +230,24 @@ class BedrockService:
                 return None
             else:
                 raise
+
+    def search_user_documents(self, user, query, top_k=5):
+        """Search across user's documents"""
+        try:
+            user_store_path = f'vector_stores/users/{user.id}'
+            user_vector_store = FAISS.load_local(
+                user_store_path, 
+                self.embeddings,
+                allow_dangerous_deserialization=True
+            )
+            
+            # Perform semantic search
+            results = user_vector_store.similarity_search(query, k=top_k)
+            return results
+        
+        except Exception as e:
+            print(f"Error in user document search: {e}")
+            return []
 
     def search_documents(self, query, document_ids):
         """Search across multiple documents"""

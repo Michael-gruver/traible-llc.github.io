@@ -15,9 +15,11 @@ class Document(models.Model):
     vector_store_path = models.CharField(max_length=255, null=True, blank=True)
     raw_text = models.TextField(null=True, blank=True)  # Store extracted text
     processing_error = models.TextField(null=True, blank=True)  # Store any processing errors
+    file_hash = models.CharField(max_length=64, unique=True, null=True)  # Add file hash for duplicate detection
 
     class Meta:
         db_table = 'documents'
+        unique_together = ('user', 'file_hash')  # Prevent duplicate uploads per user
 
 class Conversation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

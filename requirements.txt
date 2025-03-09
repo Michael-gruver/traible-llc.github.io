@@ -38,6 +38,7 @@ marshmallow==3.26.1
 multidict==6.1.0
 mypy-extensions==1.0.0
 numpy==1.26.4
+opencv-python==4.11.0.86
 orjson==3.10.15
 packaging==24.2
 pdf2image==1.16.3

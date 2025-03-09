@@ -8,4 +8,8 @@ urlpatterns = [
     path('chat/', ChatView.as_view(), name='chat'),
     path('conversations/', ConversationHistoryView.as_view(), name='conversation-list'),
     path('conversations/<uuid:conversation_id>/', ConversationHistoryView.as_view(), name='conversation-detail'),
+    path('conversations/<uuid:conversation_id>/delete/', ConversationDeleteView.as_view(), name='delete-conversation'),
+    path('documents/', UserDocumentsView.as_view(), name='user-documents'),
+    path('conversations/initialize/', ConversationInitializeView.as_view(), name='initialize-conversation'),
 ]
+

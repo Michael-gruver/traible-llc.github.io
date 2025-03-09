@@ -15,9 +15,15 @@ class Document(models.Model):
     vector_store_path = models.CharField(max_length=255, null=True, blank=True)
     raw_text = models.TextField(null=True, blank=True)  # Store extracted text
     processing_error = models.TextField(null=True, blank=True)  # Store any processing errors
+    file_hash = models.CharField(max_length=64, null=True)  # Add file hash for duplicate detection
+    has_images = models.BooleanField(default=False)
+    image_count = models.IntegerField(default=0)
+    image_data = models.JSONField(null=True, blank=True)
+    extracted_tables = models.JSONField(null=True, blank=True)
 
     class Meta:
         db_table = 'documents'
+        unique_together = ('user', 'file_hash')  # Prevent duplicate uploads per user
 
 class Conversation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

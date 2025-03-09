@@ -1,4 +1,3 @@
-
 # chatbot/views.py
 from django.http import StreamingHttpResponse
 from rest_framework import status
@@ -18,8 +17,6 @@ class DocumentUploadView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        conversation_id = request.data.get('conversation_id')  # Add this to accept a conversation ID
-        
         if 'file' not in request.FILES:
             return Response({
                 'message': 'No file provided'
@@ -34,96 +31,51 @@ class DocumentUploadView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Save document
+            # Calculate file hash
+            bedrock = BedrockService()
+            file_hash = bedrock.calculate_file_hash(file)
+            
+            # Check for existing document
+            existing_document = Document.objects.filter(
+                user=request.user,
+                file_hash=file_hash
+            ).first()
+            
+            if existing_document:
+                return Response({
+                    'message': 'Document with this name already exists',
+                    'document_id': existing_document.id,
+                    'is_processed': existing_document.is_processed
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Save new document
             document = Document.objects.create(
                 user=request.user,
                 title=file.name,
                 file=file,
-                content_type=content_type
+                content_type=content_type,
+                file_hash=file_hash
             )
             
             # Process document
-            bedrock = BedrockService()
             if bedrock.process_document(document):
-                # If conversation_id provided, add document to that conversation
-                if conversation_id:
-                    try:
-                        conversation = Conversation.objects.get(
-                            id=conversation_id,
-                            user=request.user
-                        )
-                        
-                        # Add system message to record document upload
-                        Message.objects.create(
-                            conversation=conversation,
-                            content=f"Document uploaded: {document.title}",
-                            role='system',
-                            references={
-                                'documents': [str(document.id)],
-                                'contexts': [],
-                                'event_type': 'document_upload'
-                            }
-                        )
-                        
-                        return Response({
-                            'message': 'Document uploaded and added to conversation successfully',
-                            'document_id': document.id,
-                            'conversation_id': conversation.id
-                        })
-                        
-                    except Conversation.DoesNotExist:
-                        return Response({
-                            'message': 'Conversation not found'
-                        }, status=status.HTTP_404_NOT_FOUND)
+                # Update user vector store
                 
-                # Create new conversation if no conversation_id provided
-                else:
-                    document_key = document.id
-                    conversation = Conversation.objects.create(
-                        user=request.user,
-                        title=document.title[:50],
-                        document_key=document_key
-                    )
-                    
-                    # Add system message to record document upload
-                    Message.objects.create(
-                        conversation=conversation,
-                        content=f"Document uploaded: {document.title}",
-                        role='system',
-                        references={
-                            'documents': [str(document.id)],
-                            'contexts': [],
-                            'event_type': 'document_upload'
-                        }
-                    )
-                    
-                    # Add greeting message for new conversations
-                    greeting_message = Message.objects.create(
-                        conversation=conversation,
-                        content="How can I assist you with this document today?",
-                        role='assistant',
-                        references={
-                            'documents': [str(document.id)],
-                            'contexts': []
-                        }
-                    )
-                    
-                    return Response({
-                        'message': 'Document uploaded and processed successfully',
-                        'document_id': document.id,
-                        'conversation_id': conversation.id,
-                        'greeting': greeting_message.content
-                    })
+                return Response({
+                    'message': 'Document uploaded and processed successfully',
+                    'document_id': document.id
+                })
             else:
                 document.delete()
                 return Response({
                     'message': 'Error processing document'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+            
         except Exception as e:
             return Response({
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # chatbot/views.py (updated ChatView)
 
 class ChatView(APIView):
@@ -171,9 +123,7 @@ class ChatView(APIView):
         message = request.data.get('message')
         document_ids = request.data.get('document_ids', [])
         conversation_id = request.data.get('conversation_id')
-        stream_mode = request.data.get('stream', False)  # Optional streaming parameter
-        
-        print(f"DEBUG: Received request - message: {message}, document_ids: {document_ids}, stream: {stream_mode}")
+        stream_mode = request.data.get('stream', False)
         
         if not message:
             return Response({
@@ -186,29 +136,23 @@ class ChatView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
             
         try:
-            print("hereeeeee")
             # Verify all documents exist and are processed
             accessible_docs = Document.objects.filter(
-                models.Q(user=request.user)  # Documents owned by the user
+                models.Q(user=request.user)
             ).distinct()
-            print(accessible_docs)
+            
             for doc_id in document_ids:
-                try:
-                    doc = accessible_docs.filter(id=doc_id).first()
-                    
-                    if not doc:
-                        return Response({
-                            'message': f'Document {doc_id} not found or you do not have access to it'
-                        }, status=status.HTTP_404_NOT_FOUND)
-                        
-                    if not doc.is_processed:
-                        return Response({
-                            'message': f'Document {doc_id} is not processed yet. Please wait and try again.'
-                        }, status=status.HTTP_400_BAD_REQUEST)
-                except Document.DoesNotExist:
+                doc = accessible_docs.filter(id=doc_id).first()
+                
+                if not doc:
                     return Response({
-                        'message': f'Document {doc_id} not found'
+                        'message': f'Document {doc_id} not found or you do not have access to it'
                     }, status=status.HTTP_404_NOT_FOUND)
+                    
+                if not doc.is_processed:
+                    return Response({
+                        'message': f'Document {doc_id} is not processed yet. Please wait and try again.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
             
             # Get or create conversation
             if conversation_id:
@@ -217,26 +161,23 @@ class ChatView(APIView):
                         id=conversation_id,
                         user=request.user
                     )
+                    
+                    # Update conversation title with first message if it's still the generic title
+                    if conversation.title == 'Untitled Conversation':
+                        conversation.title = message[:50]
+                        conversation.save()
+                
                 except Conversation.DoesNotExist:
                     return Response({
                         'message': 'Conversation not found'
                     }, status=status.HTTP_404_NOT_FOUND)
             else:
-                # No conversation_id provided, check if one was already created
-                document_key = '-'.join(sorted(document_ids))
-                conversation = Conversation.objects.filter(
+                # Create a new conversation
+                conversation = Conversation.objects.create(
                     user=request.user,
-                    document_key=document_key
-                ).first()
-                
-                # If no conversation exists, create a new one
-                if not conversation:
-                    first_doc = Document.objects.get(id=document_ids[0])
-                    conversation = Conversation.objects.create(
-                        user=request.user,
-                        title=first_doc.title[:50],
-                        document_key=document_key
-                    )
+                    title=message[:50],  # Set title as first message
+                    document_key='-'.join(sorted(document_ids))
+                )
             
             # Save user message
             Message.objects.create(
@@ -244,12 +185,42 @@ class ChatView(APIView):
                 content=message,
                 role='user'
             )
-            
+            # print(f"Message: {message}")
+            # print(f"Document IDs: {document_ids}")
             # Get document context
             bedrock = BedrockService()
-            relevant_docs = bedrock.search_documents(message, document_ids)
-            context = "\n\n".join([doc.page_content for doc in relevant_docs])
-            
+            serach_results, errors = bedrock.search_documents(
+                # request.user, 
+                message, 
+                # top_k=5
+                document_ids,
+                request.user.id
+            )
+            if errors:
+                print(f"errors during document search: {errors}")
+                
+            relevant_docs = []
+            for doc in serach_results:
+                #check if this is a document object with
+                if hasattr(doc, 'page_content'):
+                    relevant_docs.append(doc)
+                elif isinstance(doc, dict) and 'page_content' in doc:
+                    relevant_docs.append(doc)
+                elif isinstance(doc, list):
+                    if not doc:
+                        continue
+                    if hasattr(doc[0], 'page_content'):
+                        relevant_docs.extend(doc)
+                    else:
+                        print(f"Unexpected document format: {type(doc[0])}")
+                        
+            print(f"Found {len(relevant_docs)} relevant documents after processing")
+            if len(relevant_docs) > 0:
+                print(f"First document: {relevant_docs[0].page_content[:100]}")
+                        
+            # context = "\n\n".join([doc[0].page_content for doc in relevant_docs])
+            context = "\n\n".join([doc.page_content for doc in relevant_docs]) 
+
             # Get conversation history
             history = Message.objects.filter(
                 conversation=conversation
@@ -263,7 +234,6 @@ class ChatView(APIView):
                     content_type='text/event-stream'
                 )
                 response['Cache-Control'] = 'no-cache'
-                # response['X-Accel-Buffering'] = 'no'  # For Nginx
                 return response
             else:
                 # Generate regular response
@@ -276,7 +246,7 @@ class ChatView(APIView):
                     role='assistant',
                     references={
                         'documents': document_ids,
-                        'contexts': [doc.page_content for doc in relevant_docs]
+                        'contexts': [doc.page_content for doc in relevant_docs if hasattr(doc, 'page_content')]
                     }
                 )
                 
@@ -290,12 +260,62 @@ class ChatView(APIView):
             return Response({
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
             
 class ConversationHistoryView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, conversation_id=None):
         try:
+            if not conversation_id:
+                # Get all conversations
+                conversations = Conversation.objects.filter(
+                    user=request.user
+                ).order_by('-created_at')
+                
+                conversation_data = []
+                for conv in conversations:
+                    # Get first user message as title
+                    first_message = Message.objects.filter(
+                        conversation=conv, 
+                        role='user'
+                    ).order_by('created_at').first()
+                    
+                    # Find all referenced documents in this conversation
+                    documents = []
+                    doc_ids = set()
+                    
+                    # Find all referenced documents in this conversation
+                    for msg in Message.objects.filter(conversation=conv, role='assistant'):
+                        if msg.references and 'documents' in msg.references:
+                            doc_ids.update(msg.references['documents'])
+                    
+                    # Get titles for documents
+                    for doc_id in doc_ids:
+                        try:
+                            doc = Document.objects.get(id=doc_id)
+                            documents.append({
+                                'id': doc_id,
+                                'title': doc.title
+                            })
+                        except Document.DoesNotExist:
+                            documents.append({
+                                'id': doc_id,
+                                'title': "Unknown document"
+                            })
+                    
+                    conversation_data.append({
+                        'id': conv.id,
+                        'title': first_message.content[:50] if first_message else conv.title,
+                        'created_at': conv.created_at,
+                        'message_count': conv.message_set.count(),
+                        'documents': documents
+                    })
+                
+                return Response({
+                    'conversations': conversation_data
+                })
+            
             if conversation_id:
                 # Get specific conversation
                 conversation = get_object_or_404(
@@ -348,57 +368,120 @@ class ConversationHistoryView(APIView):
                 return Response({
                     'conversation': {
                         'id': conversation.id,
-                        'title': conversation.title,
+                        'title': messages.filter(role='user').first().content[:50] if messages.filter(role='user').exists() else conversation.title,
                         'created_at': conversation.created_at,
                         'timeline': timeline
                     }
                 })
-            else:
-                # Get all conversations
-                conversations = Conversation.objects.filter(
-                    user=request.user
-                ).order_by('-created_at')
-                
-                conversation_data = []
-                for conv in conversations:
-                    # Get document info for this conversation
-                    documents = []
-                    doc_ids = set()
-                    
-                    # Find all referenced documents in this conversation
-                    for msg in Message.objects.filter(conversation=conv, role='assistant'):
-                        if msg.references and 'documents' in msg.references:
-                            doc_ids.update(msg.references['documents'])
-                    
-                    # Get titles for documents
-                    for doc_id in doc_ids:
-                        try:
-                            doc = Document.objects.get(id=doc_id)
-                            documents.append({
-                                'id': doc_id,
-                                'title': doc.title
-                            })
-                        except Document.DoesNotExist:
-                            documents.append({
-                                'id': doc_id,
-                                'title': "Unknown document"
-                            })
-                    
-                    conversation_data.append({
-                        'id': conv.id,
-                        'title': conv.title,
-                        'created_at': conv.created_at,
-                        'message_count': conv.message_set.count(),
-                        'documents': documents
-                    })
-                
-                return Response({
-                    'conversations': conversation_data
-                })
-                
+            
         except Exception as e:
             return Response({
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-
+# In chatbot/views.py
+class ConversationDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request, conversation_id):
+        try:
+            # Find the conversation for the current authenticated user
+            conversation = get_object_or_404(
+                Conversation, 
+                id=conversation_id, 
+                user=request.user
+            )
+            
+            # Delete all associated messages
+            Message.objects.filter(conversation=conversation).delete()
+            
+            # Delete the conversation
+            conversation.delete()
+            
+            return Response({
+                'message': 'Conversation deleted successfully'
+            }, status=status.HTTP_200_OK)
+        
+        except Conversation.DoesNotExist:
+            return Response({
+                'message': 'Conversation not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'message': 'Error deleting conversation',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+# In chatbot/views.py
+class UserDocumentsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Retrieve all documents uploaded by the user
+            documents = Document.objects.filter(
+                user=request.user
+            ).order_by('-created_at')
+            
+            # Serialize document information
+            document_data = [{
+                'id': doc.id,
+                'title': doc.title,
+                'is_processed': doc.is_processed,
+                'created_at': doc.created_at,
+                'content_type': doc.content_type
+            } for doc in documents]
+            
+            return Response({
+                'documents': document_data
+            })
+        
+        except Exception as e:
+            return Response({
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    # In chatbot/views.py
+class ConversationInitializeView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        # Get optional document IDs from request
+        document_ids = request.data.get('document_ids', [])
+        
+        try:
+            # Validate documents
+            if document_ids:
+                # Ensure user has access to these documents
+                documents = Document.objects.filter(
+                    user=request.user, 
+                    id__in=document_ids, 
+                    is_processed=True
+                )
+                
+                if len(documents) != len(document_ids):
+                    return Response({
+                        'message': 'One or more documents not found or not processed'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create a new conversation with a generic initial title
+            conversation = Conversation.objects.create(
+                user=request.user,
+                title='Untitled Conversation',  # Generic initial title
+                document_key='-'.join(sorted(map(str, document_ids))) if document_ids else None
+            )
+            
+            return Response({
+                'conversation_id': str(conversation.id),
+                'documents': [
+                    {
+                        'id': doc.id, 
+                        'title': doc.title
+                    } for doc in documents
+                ] if document_ids else []
+            }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            return Response({
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

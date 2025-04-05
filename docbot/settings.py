@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'chatbot',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -166,3 +167,29 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 FRONTEND_URL = "http://localhost:3000" 
 AUTH_USER_MODEL = 'accounts.User'
+
+# Redis connection settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'django-db'  # Use database instead of Redis for results
+
+# Connection settings
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
+CELERY_BROKER_CONNECTION_TIMEOUT = 30
+
+# Redis connection pool settings
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'visibility_timeout': 43200,  # 12 hours
+    'socket_timeout': 60,         # 60 seconds socket timeout
+    'socket_connect_timeout': 30, # 30 seconds connect timeout
+    'socket_keepalive': True,     # Enable TCP keepalive
+    'max_connections': 100,       # Maximum number of connections in the pool
+    'retry_on_timeout': True,     # Retry on timeout
+}
+
+# Task settings for better reliability
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = False

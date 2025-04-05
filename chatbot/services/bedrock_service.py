@@ -17,15 +17,74 @@ import cv2
 import base64
 from io import BytesIO
 from django.conf import settings
+import time
+import threading
+from functools import wraps
+from decouple import config
+
+# Simple rate limiter
+# More sophisticated rate limiter with per-second and per-minute tracking
+class RateLimiter:
+    def __init__(self, calls_per_second=1.5, calls_per_minute=80):
+        self.calls_per_second = calls_per_second
+        self.calls_per_minute = calls_per_minute
+        self.second_calls = []
+        self.minute_calls = []
+        self.lock = threading.Lock()
+    
+    def __call__(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with self.lock:
+                now = time.time()
+                
+                # Update second tracking
+                self.second_calls = [t for t in self.second_calls if now - t < 1.0]
+                if len(self.second_calls) >= self.calls_per_second:
+                    sleep_time = 1.0 - (now - self.second_calls[0]) + random.uniform(0.1, 0.3)  # Add jitter
+                    if sleep_time > 0:
+                        print(f"Rate limit (per second) reached, waiting {sleep_time:.2f} seconds")
+                        time.sleep(sleep_time)
+                
+                # Update minute tracking
+                self.minute_calls = [t for t in self.minute_calls if now - t < 60.0]
+                if len(self.minute_calls) >= self.calls_per_minute:
+                    sleep_time = 60.0 - (now - self.minute_calls[0]) + random.uniform(0.5, 1.5)  # Add jitter
+                    if sleep_time > 0:
+                        print(f"Rate limit (per minute) reached, waiting {sleep_time:.2f} seconds")
+                        time.sleep(sleep_time)
+                
+                # Add this call to both trackers
+                current_time = time.time()
+                self.second_calls.append(current_time)
+                self.minute_calls.append(current_time)
+            
+            # Try the call with exponential backoff
+            max_retries = 5
+            retry_delay = 2
+            
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if "ThrottlingException" in str(e) and attempt < max_retries - 1:
+                        # Add jitter to the backoff to prevent thundering herd
+                        wait_time = retry_delay * (2 ** attempt) + random.uniform(0, 1)
+                        print(f"Throttling detected, retrying in {wait_time:.2f} seconds (attempt {attempt+1}/{max_retries})")
+                        time.sleep(wait_time)
+                    else:
+                        raise
+        
+        return wrapper
 
 class BedrockService:
     def __init__(self):
         # Initialize Bedrock client
         self.bedrock_runtime = boto3.client(
             service_name='bedrock-runtime',
-            region_name='us-east-1',
-            aws_access_key_id='AKIAXTORPSTXNZXE2AWM',
-            aws_secret_access_key='***REMOVED***',
+            region_name=config('REGION_NAME'),
+            aws_access_key_id=config('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=config('AWS_SECRET_ACCESS_KEY'),
             config=Config(
                 retries={'max_attempts': 3, 'mode': 'standard'},
                 connect_timeout=5,
@@ -35,9 +94,9 @@ class BedrockService:
         
         self.textract_client = boto3.client(
             service_name='textract',
-            region_name= 'us-east-1',
-            aws_access_key_id='AKIAXTORPSTXNZXE2AWM',
-            aws_secret_access_key='***REMOVED***'
+            region_name=config('REGION_NAME'),
+            aws_access_key_id=config('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=config('AWS_SECRET_ACCESS_KEY'),
         )
         
         # Initialize embeddings
@@ -140,15 +199,29 @@ class BedrockService:
                 text += page.extract_text() + "\n"
         return text
 
-    def extract_rich_content(self, pdf_path):
+    def extract_rich_content(self, pdf_path, page_range=None):
+        # os.environ['TESSDATA_PREFIX'] = '/usr/local/share/tessdata/'
         """Extract text, images, diagrams, and tables from PDF"""
         page_data = []
 
         try:
             # Convert PDF pages to images
             images = convert_from_path(pdf_path)
+            
+            # If page_range is specified, filter the pages
+            if page_range:
+                start_page, end_page = page_range
+                # Adjust for 0-indexing in the images list
+                start_idx = start_page - 1
+                end_idx = end_page
+                images = images[start_idx:end_idx]
+                # Adjust page numbers for logging
+                page_offset = start_page
+            else:
+                page_offset = 1
 
-            for page_num, image in enumerate(images, start=1):
+            for i, image in enumerate(images):
+                page_num = i + page_offset
                 # Save image to temp file
                 with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
                     image.save(temp_file, format="PNG")
@@ -174,8 +247,14 @@ class BedrockService:
 
                 image_analysis = None
                 tables = []
+                
+                # Only analyze images if there are significant contours AND the page has few words
+            # This helps avoid analyzing pages that are mostly text
+                word_count = len(extracted_text.split())
+                has_significant_graphics = len(significant_contours) > 5
 
                 if len(significant_contours) > 0:
+                # if has_significant_graphics and (word_count < 200 or "figure" in extracted_text.lower() or "diagram" in extracted_text.lower() or "illustration" in extracted_text.lower() or "machinery" in extracted_text.lower() or "machine" in extracted_text.lower()):
                     # Use Textract for comprehensive analysis
                     with open(temp_image_path, "rb") as img_file:
                         img_bytes = img_file.read()
@@ -192,8 +271,10 @@ class BedrockService:
                         tables.append(table_data)
                 
                     # Analyze image with Claude Vision
+                    # if has_significant_graphics and (word_count < 100 or "figure" in extracted_text.lower() or "diagram" in extracted_text.lower()):
                     image_analysis = self.analyze_technical_image(temp_image_path, page_num)
-
+                    # else:
+                        # print(f"⏩ Skipping image analysis for page {page_num} (text-heavy page)")
                 # Store page information
                 page_info = {
                     'page_number': page_num,
@@ -236,7 +317,8 @@ class BedrockService:
             table_data.append(row)
 
         return {'rows': table_data}
-
+    
+    @RateLimiter(calls_per_second=1.5, calls_per_minute=80)
     def analyze_technical_image(self, image_path, page_num):
         """Use Claude 3 Vision to analyze technical diagrams"""
         try:
@@ -407,48 +489,103 @@ If the image contains other content, please describe it accurately and concisely
             print(error_message)
             return error_message
 
-    # def search_documents(self, query, document_ids, user_id):
-    #     """Search across multiple documents"""
-    #     results = []
-    #     errors = []
-        
-    #     for doc_id in document_ids:
-    #         try:
-    #             vector_store_path = f'vector_stores/user_{user_id}/document_{doc_id}'
-    #             print(f"Attempting to load vector store from: {vector_store_path}")
-    #             if not os.path.exists(vector_store_path):
-    #                 print(f"Vector store path does not exist: {vector_store_path}")  # Add this line for debugging
-    #                 continue  # Skip to the next document if the path doesn't exist
-                
-    #             if not os.path.exists(os.path.join(vector_store_path, 'index.faiss')):
-    #                 print(f"FAISS index not found in: {vector_store_path}")
-    #                 errors.append(f"FAISS index not found for document {doc_id}")
-    #                 continue
-                
-    #             vector_store = FAISS.load_local(
-    #                 vector_store_path,
-    #                 self.embeddings,
-    #                 allow_dangerous_deserialization=True
-    #             )
-    #             docs = vector_store.similarity_search(query, k=2)
-    #             results.extend(docs)
-    #             print(f"Successfully searched document {doc_id}")
-    #         except Exception as e:
-    #             print(f"Error searching document {doc_id}: {e}")
-                
-    #     return results
-
     def search_documents(self, query, document_ids, user_id):
         # print(document_ids)
         """Search across multiple documents with enhanced diagram retrieval"""
         results = []
         errors = []
-        is_diagram_query = any(keyword in query.lower() for keyword in ["diagram", "image", "picture", "illustration", "figure", "schematic", "machinery", "machine"])
         
+        # Step 1: First determine which document is most topically relevant to the query
+        document_relevance = {}
+        
+        # Get document content summaries for topic matching
+        from chatbot.models import Document
+        document_summaries = {}
+            
+        print(f"Evaluating {len(document_ids)} documents for topic relevance to: '{query}'")
+    
         for doc_id in document_ids:
             try:
+                doc = Document.objects.get(id=doc_id)
+                
+                # Create a summary of the document content for topic matching
+                # Use the first 1000 characters of raw_text as a representative sample
+                if doc.raw_text:
+                    summary = doc.raw_text[:2000]  # Use first 2000 chars as summary
+                    document_summaries[doc_id] = summary
+                    
+                    # Get document title for logging
+                    doc_title = doc.title
+                    filename = doc_title.split('/')[-1] if '/' in doc_title else doc_title
+                    filename = filename.split('\\')[-1] if '\\' in filename else filename
+                    base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+                    
+                    print(f"Document {doc_id}: {base_name}")
+                else:
+                    print(f"Document {doc_id} has no raw text")
+            except Document.DoesNotExist:
+                print(f"Document {doc_id} not found")
+                errors.append(f"Document {doc_id} not found")
+        
+        # Step 2: Use embeddings to determine which document is most relevant to the query
+        try:
+            # Get query embedding
+            query_embedding = self.embeddings.embed_query(query)
+            
+            # Calculate similarity between query and each document summary
+            for doc_id, summary in document_summaries.items():
+                try:
+                    # Get document summary embedding
+                    doc_embedding = self.embeddings.embed_query(summary)
+                    
+                    # Calculate cosine similarity
+                    dot_product = sum(a*b for a, b in zip(query_embedding, doc_embedding))
+                    magnitude1 = sum(a*a for a in query_embedding) ** 0.5
+                    magnitude2 = sum(b*b for b in doc_embedding) ** 0.5
+                    similarity = dot_product / (magnitude1 * magnitude2)
+                    
+                    document_relevance[doc_id] = similarity
+                    
+                    # Get document title for logging
+                    doc = Document.objects.get(id=doc_id)
+                    doc_title = doc.title
+                    filename = doc_title.split('/')[-1] if '/' in doc_title else doc_title
+                    filename = filename.split('\\')[-1] if '\\' in filename else filename
+                    base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+                    
+                    print(f"Document {doc_id} ({base_name}) relevance score: {similarity:.4f}")
+                except Exception as e:
+                    print(f"Error calculating similarity for document {doc_id}: {e}")
+                    document_relevance[doc_id] = 0
+            
+            # Sort documents by relevance (highest first)
+            sorted_docs = sorted(document_relevance.items(), key=lambda x: x[1], reverse=True)
+            
+            # Select top 2 most relevant documents (or all if less than 2)
+            top_docs = [doc_id for doc_id, score in sorted_docs[:2]]
+            
+            # If the top document has a significantly higher score, just use that one
+            if len(sorted_docs) > 1 and sorted_docs[0][1] > sorted_docs[1][1] * 1.5:
+                top_docs = [sorted_docs[0][0]]
+                
+            print(f"Selected most relevant documents: {top_docs}")
+            
+            # If we found relevant documents, only search those
+            if top_docs:
+                docs_to_search = top_docs
+            else:
+                docs_to_search = document_ids
+        except Exception as e:
+            print(f"Error determining document relevance: {e}")
+            docs_to_search = document_ids
+        
+        # Step 3: Now perform detailed search in the selected documents
+        is_diagram_query = any(keyword in query.lower() for keyword in ["diagram", "image", "picture", "illustration", "figure", "schematic", "machinery", "machine"])
+        
+        for doc_id in docs_to_search:
+            try:
                 vector_store_path = f'vector_stores/user_{user_id}/document_{doc_id}'
-                print(f"Attempting to load vector store from: {vector_store_path}")
+                print(f"Searching in document {doc_id} at {vector_store_path}")
                 
                 if not os.path.exists(vector_store_path):
                     print(f"Vector store path does not exist: {vector_store_path}")
@@ -469,25 +606,29 @@ If the image contains other content, please describe it accurately and concisely
                 
                 # For diagram queries, use more results and different search parameters
                 if is_diagram_query:
-                    # print("hereeeeeeeeeeeeeeeee")
                     # Use more results for diagram queries to increase chances of finding relevant content
                     docs = vector_store.similarity_search(query, k=4)
                     
                     # Also explicitly search for diagram-related content
                     diagram_docs = vector_store.similarity_search("diagram image illustration figure machinery machine", k=2)
                     
-                    # Combine results, removing duplicates - FIXED THIS PART
+                    # Combine results, removing duplicates
                     all_docs = []
                     all_docs.extend(docs)
                     for doc in diagram_docs:
                         if not any(doc.page_content == d.page_content for d in docs):
                             all_docs.append(doc)
                     
+                    # Add document ID to metadata for tracking
+                    for doc in all_docs:
+                        if not hasattr(doc, 'metadata'):
+                            doc.metadata = {}
+                        doc.metadata['document_id'] = doc_id
+                    
                     results.extend(all_docs)
                     
                     # If this is a diagram query, also fetch image data directly from the database
                     try:
-                        from chatbot.models import Document  # Import here to avoid circular import
                         document = Document.objects.get(id=doc_id)
                         
                         if document.has_images and document.image_data:
@@ -499,22 +640,29 @@ If the image contains other content, please describe it accurately and concisely
                                 from langchain.schema import Document as LangchainDocument
                                 img_doc = LangchainDocument(
                                     page_content=f"Image on page {img_data['page_number']}: {img_data['description']}",
-                                    metadata={"source": f"document_{doc_id}_image_{img_data['page_number']}"}
+                                    metadata={"source": f"document_{doc_id}_image_{img_data['page_number']}", "document_id": doc_id}
                                 )
                                 results.append(img_doc)
                     except Exception as img_error:
                         print(f"Error retrieving image data from database: {str(img_error)}")
                 else:
                     # Standard search for non-diagram queries
-                    docs = vector_store.similarity_search(query, k=2)
+                    docs = vector_store.similarity_search(query, k=3)
+                    
+                    # Add document ID to metadata for tracking
+                    for doc in docs:
+                        if not hasattr(doc, 'metadata'):
+                            doc.metadata = {}
+                        doc.metadata['document_id'] = doc_id
+                        
                     results.extend(docs)
                     
-                print(f"Successfully searched document {doc_id}")
+                print(f"Successfully searched document {doc_id}, found {len(docs)} relevant chunks")
             except Exception as e:
                 error_msg = f"Error searching document {doc_id}: {str(e)}"
                 print(error_msg)
                 errors.append(error_msg)
-        
+                
         # If this is a diagram query but no results were found, add a note about it
         if is_diagram_query and not results:
             from langchain.schema import Document as LangchainDocument
@@ -524,4 +672,150 @@ If the image contains other content, please describe it accurately and concisely
             )
             results.append(no_diagrams_doc)
         
+        # Add document titles to the results for better context
+        if results:
+            try:
+                # Group results by document
+                doc_groups = {}
+                for doc in results:
+                    doc_id = doc.metadata.get('document_id', 'unknown')
+                    if doc_id not in doc_groups:
+                        doc_groups[doc_id] = []
+                    doc_groups[doc_id].append(doc)
+                
+                # Add document title headers
+                final_results = []
+                for doc_id, docs in doc_groups.items():
+                    if doc_id != 'unknown':
+                        try:
+                            doc = Document.objects.get(id=doc_id)
+                            doc_title = doc.title
+                            filename = doc_title.split('/')[-1] if '/' in doc_title else doc_title
+                            filename = filename.split('\\')[-1] if '\\' in filename else filename
+                            base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+                            
+                            # Add a header document
+                            from langchain.schema import Document as LangchainDocument
+                            header_doc = LangchainDocument(
+                                page_content=f"Information from document: {base_name}",
+                                metadata={"document_id": doc_id, "is_header": True}
+                            )
+                            final_results.append(header_doc)
+                        except Exception as e:
+                            print(f"Error getting document title: {e}")
+                    
+                    final_results.extend(docs)
+                
+                results = final_results
+            except Exception as e:
+                print(f"Error adding document titles: {e}")
+        
         return results, errors
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        # is_diagram_query = any(keyword in query.lower() for keyword in ["diagram", "image", "picture", "illustration", "figure", "schematic", "machinery", "machine"])
+        
+        # for doc_id in document_ids:
+        #     try:
+        #         vector_store_path = f'vector_stores/user_{user_id}/document_{doc_id}'
+        #         print(f"Attempting to load vector store from: {vector_store_path}")
+                
+        #         if not os.path.exists(vector_store_path):
+        #             print(f"Vector store path does not exist: {vector_store_path}")
+        #             errors.append(f"Vector store not found for document {doc_id}")
+        #             continue
+                
+        #         if not os.path.exists(os.path.join(vector_store_path, 'index.faiss')):
+        #             print(f"FAISS index not found in: {vector_store_path}")
+        #             errors.append(f"FAISS index not found for document {doc_id}")
+        #             continue
+                
+        #         # Load the vector store
+        #         vector_store = FAISS.load_local(
+        #             vector_store_path,
+        #             self.embeddings,
+        #             allow_dangerous_deserialization=True
+        #         )
+                
+        #         # For diagram queries, use more results and different search parameters
+        #         if is_diagram_query:
+        #             # print("hereeeeeeeeeeeeeeeee")
+        #             # Use more results for diagram queries to increase chances of finding relevant content
+        #             docs = vector_store.similarity_search(query, k=4)
+                    
+        #             # Also explicitly search for diagram-related content
+        #             diagram_docs = vector_store.similarity_search("diagram image illustration figure machinery machine", k=2)
+                    
+        #             # Combine results, removing duplicates - FIXED THIS PART
+        #             all_docs = []
+        #             all_docs.extend(docs)
+        #             for doc in diagram_docs:
+        #                 if not any(doc.page_content == d.page_content for d in docs):
+        #                     all_docs.append(doc)
+                    
+        #             results.extend(all_docs)
+                    
+        #             # If this is a diagram query, also fetch image data directly from the database
+        #             try:
+        #                 from chatbot.models import Document  # Import here to avoid circular import
+        #                 document = Document.objects.get(id=doc_id)
+                        
+        #                 if document.has_images and document.image_data:
+        #                     print(f"Found {len(document.image_data)} images in document {doc_id}")
+                            
+        #                     # Create synthetic documents from image data to include in results
+        #                     for img_data in document.image_data:
+        #                         # Create a document-like object with the image description
+        #                         from langchain.schema import Document as LangchainDocument
+        #                         img_doc = LangchainDocument(
+        #                             page_content=f"Image on page {img_data['page_number']}: {img_data['description']}",
+        #                             metadata={"source": f"document_{doc_id}_image_{img_data['page_number']}"}
+        #                         )
+        #                         results.append(img_doc)
+        #             except Exception as img_error:
+        #                 print(f"Error retrieving image data from database: {str(img_error)}")
+        #         else:
+        #             # Standard search for non-diagram queries
+        #             docs = vector_store.similarity_search(query, k=2)
+        #             results.extend(docs)
+                    
+        #         print(f"Successfully searched document {doc_id}")
+        #     except Exception as e:
+        #         error_msg = f"Error searching document {doc_id}: {str(e)}"
+        #         print(error_msg)
+        #         errors.append(error_msg)
+        
+        # # If this is a diagram query but no results were found, add a note about it
+        # if is_diagram_query and not results:
+        #     from langchain.schema import Document as LangchainDocument
+        #     no_diagrams_doc = LangchainDocument(
+        #         page_content="Note: Your query appears to be about diagrams or images, but no specific diagram information was found in the search results.",
+        #         metadata={"source": "system_message"}
+        #     )
+        #     results.append(no_diagrams_doc)
+        
+        # return results, errors

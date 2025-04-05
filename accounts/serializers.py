@@ -44,9 +44,9 @@ class SignupSerializer(serializers.ModelSerializer):
         errors = {}
         if email_exists or username_exists:
             if email_exists:
-                errors['email'] = 'This email is already registered'
+                errors = 'This email is already registered'
             if username_exists:
-                errors['username'] = 'This username is already taken'
+                errors = 'This username is already taken'
             raise serializers.ValidationError({
                 'error': errors
             })

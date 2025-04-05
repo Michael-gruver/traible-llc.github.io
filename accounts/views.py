@@ -42,8 +42,12 @@ class SignupView(APIView):
             user.is_verified = True
             user.save()
             
+            refresh = RefreshToken.for_user(user)
+            
             return Response({
-                'message': 'Registration successful. Please verify your email.',
+                'message': 'Registration successful.',
+                'refresh': str(refresh),
+                'access': str(refresh.access_token)
                 # 'verification_url': verification_url  # Only for development
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

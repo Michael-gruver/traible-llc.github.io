@@ -20,6 +20,22 @@ class Document(models.Model):
     image_count = models.IntegerField(default=0)
     image_data = models.JSONField(null=True, blank=True)
     extracted_tables = models.JSONField(null=True, blank=True)
+    PROCESSING_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('PROCESSING', 'Processing'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+    ]
+    
+    processing_status = models.CharField(
+        max_length=20,
+        choices=PROCESSING_STATUS_CHOICES,
+        default='PENDING'
+    )
+    task_id = models.CharField(max_length=255, blank=True, null=True)
+    processing_progress = models.IntegerField(default=0)  # 0-100%
+    last_processed_page = models.IntegerField(default=0)
+    page_data = models.JSONField(default=list, blank=True)  # Store page data for resumption
 
     class Meta:
         db_table = 'documents'

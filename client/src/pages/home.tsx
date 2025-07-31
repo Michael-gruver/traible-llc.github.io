@@ -46,7 +46,7 @@ export default function Home() {
             <FileText className="w-12 h-12 text-primary mb-4" />
             <h3 className="text-lg font-semibold mb-2">Document Processing</h3>
             <p className="text-muted-foreground">
-              Upload your tax documents and let our AI analyze them for you.
+              Upload documents and let Traible extract key insights tailored to your organization.
             </p>
           </CardContent>
         </Card>
@@ -56,7 +56,7 @@ export default function Home() {
             <MessageSquare className="w-12 h-12 text-primary mb-4" />
             <h3 className="text-lg font-semibold mb-2">Intelligent Chat</h3>
             <p className="text-muted-foreground">
-              Get instant answers to your tax-related questions.
+              Ask questions and get instant, expert answers based on your company's knowledge.
             </p>
           </CardContent>
         </Card>

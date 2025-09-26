@@ -9,7 +9,7 @@ from .models import Document, Conversation, Message
 from .services.bedrock_service import BedrockService
 from django.conf import settings
 import mimetypes
-import magic
+# import magic  # Temporarily disabled for migration
 import json
 import os
 from django.http import FileResponse

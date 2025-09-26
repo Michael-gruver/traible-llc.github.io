@@ -13,3 +13,4 @@ vector_stories/
 vector_stores/
 **/vector_stores/
 **/vector_stores/**/*
+node_modules

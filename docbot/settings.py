@@ -45,6 +45,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt', 
     'corsheaders',
+    'drf_spectacular',
+    'django_extensions',
+    'debug_toolbar',
+    'cacheops',
     'accounts',
     'chatbot',
     'django_celery_results',
@@ -59,6 +63,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'chatbot.middleware.ErrorHandlingMiddleware',
+    'chatbot.middleware.RequestLoggingMiddleware',
+    'chatbot.middleware.RateLimitMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',  # Temporarily disabled
 ]
 
 ROOT_URLCONF = 'docbot.urls'
@@ -97,6 +105,20 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour'
+    }
 }
 
 # JWT Settings
@@ -122,7 +144,50 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 VECTOR_STORE_DIR = os.path.join(BASE_DIR, 'vector_stores')
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True 
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Spectacular settings for API documentation
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Traible API',
+    'DESCRIPTION': 'Document Intelligence and Chat API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/',
+}
+
+# Debug Toolbar settings
+if DEBUG:
+    INTERNAL_IPS = [
+        "127.0.0.1",
+        "localhost",
+    ]
+
+# Cacheops settings for Redis caching
+CACHEOPS_REDIS = {
+    'host': 'localhost',
+    'port': 6379,
+    'db': 1,
+    'socket_timeout': 3,
+}
+
+CACHEOPS = {
+    'accounts.user': {'ops': 'get', 'timeout': 60*15},
+    'chatbot.document': {'ops': 'get', 'timeout': 60*15},
+    'chatbot.conversation': {'ops': 'get', 'timeout': 60*15},
+    'chatbot.message': {'ops': 'get', 'timeout': 60*15},
+}
+
+# Redis cache settings
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+} 
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

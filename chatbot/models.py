@@ -40,6 +40,12 @@ class Document(models.Model):
     class Meta:
         db_table = 'documents'
         unique_together = ('user', 'file_hash')  # Prevent duplicate uploads per user
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['processing_status']),
+            models.Index(fields=['is_processed']),
+            models.Index(fields=['created_at']),
+        ]
 
 class Conversation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -51,7 +57,9 @@ class Conversation(models.Model):
     class Meta:
         db_table = 'conversations'
         indexes = [
-            models.Index(fields=['document_key']),  # Add index for faster lookup
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['document_key']),
+            models.Index(fields=['updated_at']),
         ]
 
 class Message(models.Model):
@@ -64,3 +72,8 @@ class Message(models.Model):
 
     class Meta:
         db_table = 'messages'
+        indexes = [
+            models.Index(fields=['conversation', 'created_at']),
+            models.Index(fields=['role']),
+            models.Index(fields=['created_at']),
+        ]

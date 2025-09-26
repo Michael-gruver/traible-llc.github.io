@@ -14,6 +14,12 @@ import json
 import os
 from django.http import FileResponse
 from django.db import models
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
+from .validators import FileValidator, QueryValidator
+import logging
+
+logger = logging.getLogger(__name__)
 
 def test_celery(request):
     from .tasks import test_task
@@ -26,6 +32,35 @@ def test_celery(request):
 class UserDocumentsListView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(
+        summary="Get user documents list",
+        description="Retrieve a paginated list of all documents uploaded by the authenticated user",
+        responses={
+            200: {
+                'description': 'List of user documents',
+                'examples': {
+                    'application/json': {
+                        'documents': [
+                            {
+                                'id': 1,
+                                'title': 'example.pdf',
+                                'created_at': '2024-01-01T12:00:00Z',
+                                'is_processed': True,
+                                'processing_status': 'COMPLETED',
+                                'processing_progress': 100,
+                                'file_size': 1024000,
+                                'download_url': '/api/documents/1/download/'
+                            }
+                        ],
+                        'total_count': 1,
+                        'page': 1,
+                        'page_size': 20
+                    }
+                }
+            }
+        },
+        tags=['Documents']
+    )
     def get(self, request):
         try:
             # Get all documents for the authenticated user

@@ -167,16 +167,12 @@ export function AuthForms({ setForgotPassword, forgotPassword }: { setForgotPass
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setForgotPassword(true);
-                      console.log('forgot password value--->', forgotPassword);
-                    }}
-                    className="p-0 m-0 text-blue-600 hover:underline bg-transparent border-none shadow-none"
+                  <Link
+                    to="/password-reset-request"
+                    className="text-sm text-blue-600 hover:underline"
                   >
                     Forgot password?
-                  </Button>
+                  </Link>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? <LoadingSpinner /> : 'Login'}
                   </Button>

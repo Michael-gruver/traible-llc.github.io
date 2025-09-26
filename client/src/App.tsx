@@ -10,6 +10,8 @@ import OfflineAlert from './components/OfflineAlert';
 const Home = lazy(() => import('@/pages/home'));
 const Auth = lazy(() => import('@/pages/auth'));
 const Chat = lazy(() => import('@/pages/chat'));
+const PasswordResetRequest = lazy(() => import('@/pages/password-reset-request'));
+const PasswordResetConfirm = lazy(() => import('@/pages/password-reset-confirm'));
 const NotFound = lazy(() => import('@/pages/not-found'));
 
 function App() {
@@ -37,6 +39,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/chat" element={<Chat />} />
+              <Route path="/password-reset-request" element={<PasswordResetRequest />} />
+              <Route path="/password-reset-confirm" element={<PasswordResetConfirm />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

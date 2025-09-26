@@ -66,7 +66,7 @@ MIDDLEWARE = [
     'chatbot.middleware.ErrorHandlingMiddleware',
     'chatbot.middleware.RequestLoggingMiddleware',
     'chatbot.middleware.RateLimitMiddleware',
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',  # Temporarily disabled
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'docbot.urls'

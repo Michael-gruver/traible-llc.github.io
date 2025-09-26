@@ -1,61 +1,59 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Loader2, Send, XCircle } from "lucide-react";
-import { useRecoilState, useRecoilValue } from "recoil";
-import {
-  conversationsState,
-  documentIdsState,
-  documentIdState,
-  loaderState,
-  messagesState,
-  selectedConversationIdState,
-} from "@/store/chat";
-import axios from "axios";
-import { Message } from "@shared/schema";
+import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Loader2, Send, XCircle } from 'lucide-react';
+import { useChatStore } from '@/store/chat';
+import axios from 'axios';
+import { Message } from '@shared/schema';
 
 const SUGGESTED_QUESTIONS = [
-  "What is this document about?",
-  "Give a brief summary of the document?",
-  "Explain the key points in this document.",
-  "What are the main takeaways?",
+  'What is this document about?',
+  'Give a brief summary of the document?',
+  'Explain the key points in this document.',
+  'What are the main takeaways?',
 ];
 
 export default function ChatInterface() {
-  const [input, setInput] = useState("");
-  const [loader, setLoader] = useRecoilState(loaderState);
+  const [input, setInput] = useState('');
+  const {
+    loader,
+    setLoader,
+    messages,
+    setMessages,
+    addMessage,
+    documentId,
+    selectedConversationId,
+    setSelectedConversationId,
+    conversations,
+    setConversations,
+    documentIds,
+    setDocumentIds,
+  } = useChatStore();
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useRecoilState(messagesState);
-  const documentId = useRecoilValue(documentIdState);
   const [showSuggestions, setShowSuggestions] = useState(true);
-  const [selectedConversationId, setSelectedConversationId] = useRecoilState(
-    selectedConversationIdState
-  );
-    const [conversations, setConversations] = useRecoilState(conversationsState);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [documents, setDocuments] = useRecoilState<string[]>(documentIdsState);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suggestedQuestions, setSuggestedQuestions] =
     useState<string[]>(SUGGESTED_QUESTIONS);
 
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem('token');
   const url = import.meta.env.VITE_API_URL;
 
   const fetchDocuments = async () => {
     try {
       setErrorMessage(null);
-      console.log("Fetching documents...");
+      console.log('Fetching documents...');
       const response = await axios.get(`${url}/api/documents`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       });
 
-      console.log("MY DOCS", response.data.documents);
-      setDocuments(response.data.documents);
+      console.log('MY DOCS', response.data.documents);
+      setDocumentIds(response.data.documents);
     } catch (error) {
-      console.error("Error fetching documents:", error);
+      console.error('Error fetching documents:', error);
     }
   };
 
@@ -65,9 +63,9 @@ export default function ChatInterface() {
 
   useEffect(() => {
     if (loader.documentId) {
-      setDocuments((prevDocs: any) => {
+      setDocumentIds((prevDocs: string[]) => {
         const exists = prevDocs.some(
-          (doc: any) => doc === String(loader.documentId)
+          (doc: string) => doc === String(loader.documentId)
         );
 
         if (!exists) {
@@ -76,10 +74,10 @@ export default function ChatInterface() {
             title: `Document_${loader.documentId}.pdf`,
             is_processed: false,
             created_at: new Date().toISOString(),
-            content_type: "application/pdf",
+            content_type: 'application/pdf',
           };
 
-          return [...prevDocs, newDocument];
+          return [...prevDocs, String(loader.documentId)];
         }
         return prevDocs;
       });
@@ -93,9 +91,9 @@ export default function ChatInterface() {
     // Clear previous error message
     setErrorMessage(null);
 
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    const userMessage: Message = { role: 'user', content: input };
+    addMessage(userMessage);
+    setInput('');
     setLoading(true);
     setShowSuggestions(false);
 
@@ -104,14 +102,14 @@ export default function ChatInterface() {
 
     try {
       const response = await fetch(`${url}/api/chat/`, {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: input,
-          document_ids: documents?.map((doc: any) => `${doc?.id}`),
+          document_ids: documentIds?.map((doc: string) => doc),
           conversation_id: selectedConversationId,
           stream: true,
         }),
@@ -122,18 +120,18 @@ export default function ChatInterface() {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
-          errorData.message || "An error occurred while processing the request"
+          errorData.message || 'An error occurred while processing the request'
         );
       }
 
-      if (!response.body) throw new Error("No response body");
+      if (!response.body) throw new Error('No response body');
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantMessage = "";
+      let assistantMessage = '';
 
       // Append a new message placeholder before streaming starts
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      addMessage({ role: 'assistant', content: '' });
 
       while (true) {
         const { value, done } = await reader.read();
@@ -144,72 +142,61 @@ export default function ChatInterface() {
 
         // Split the stream by newlines and clean up
         const lines = chunk
-          .split("\n")
-          .map((line) => line.replace(/^data: /, "").trim())
-          .filter((line) => line);
+          .split('\n')
+          .map(line => line.replace(/^data: /, '').trim())
+          .filter(line => line);
 
         for (const line of lines) {
           try {
             const parsed = JSON.parse(line);
-            if (parsed.type === "chunk" && parsed.text) {
+            if (parsed.type === 'chunk' && parsed.text) {
               assistantMessage += parsed.text;
 
               // Maintain proper spacing while updating state
-              setMessages((prev) => {
+              setMessages((prev: Message[]) => {
                 const lastMessage = prev[prev.length - 1];
-                if (lastMessage.role === "assistant") {
+                if (lastMessage.role === 'assistant') {
                   return [
                     ...prev.slice(0, -1),
-                    { role: "assistant", content: assistantMessage },
+                    { role: 'assistant', content: assistantMessage },
                   ];
                 }
                 return prev;
               });
             }
           } catch (err) {
-            console.error("JSON parse error:", err);
+            console.error('JSON parse error:', err);
           }
         }
-
-
       }
 
-       const fetchConversations = async () => {
-         try {
-           const token = localStorage.getItem("token");
-           const response = await fetch(`${url}/api/conversations/`, {
-             headers: {
-               Authorization: `Bearer ${token}`,
-             },
-           });
-           const data = await response.json();
-           setConversations(data.conversations);
-         } catch (error) {
-           console.error("Failed to fetch conversations:", error);
-         }
-       };
+      const fetchConversations = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${url}/api/conversations/`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const data = await response.json();
+          setConversations(data.conversations);
+        } catch (error) {
+          console.error('Failed to fetch conversations:', error);
+        }
+      };
       fetchConversations();
     } catch (error: any) {
-      console.error("🚀 ~ handleSubmit ~ error:", error);
+      console.error('🚀 ~ handleSubmit ~ error:', error);
 
       // Set specific error message
       const errorMsg =
-        error.message || "Sorry, something went wrong. Please try again.";
+        error.message || 'Sorry, something went wrong. Please try again.';
       setErrorMessage(errorMsg);
 
-      if (error.name === "AbortError") {
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "Request was cancelled." },
-        ]);
+      if (error.name === 'AbortError') {
+        addMessage({ role: 'assistant', content: 'Request was cancelled.' });
       } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: errorMsg,
-          },
-        ]);
+        addMessage({ role: 'assistant', content: errorMsg });
       }
     } finally {
       setLoading(false);
@@ -227,8 +214,8 @@ export default function ChatInterface() {
     setInput(question);
 
     // Remove only the clicked question from the suggested questions
-    setSuggestedQuestions((prevQuestions) =>
-      prevQuestions.filter((q) => q !== question)
+    setSuggestedQuestions(prevQuestions =>
+      prevQuestions.filter(q => q !== question)
     );
 
     // Hide suggestions if no questions remain
@@ -258,7 +245,7 @@ export default function ChatInterface() {
             Suggested Questions
           </h3>
           <div className="flex flex-wrap gap-2">
-            {suggestedQuestions.map((question) => (
+            {suggestedQuestions.map(question => (
               <Button
                 key={question}
                 variant="outline"
@@ -275,7 +262,7 @@ export default function ChatInterface() {
       <form onSubmit={handleSubmit} className="flex gap-2">
         <Input
           value={input}
-          onChange={(e) => {
+          onChange={e => {
             setInput(e.target.value);
             errorMessage && setErrorMessage(null);
           }}

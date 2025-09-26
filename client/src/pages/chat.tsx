@@ -1,26 +1,23 @@
-import { useEffect } from "react";
-import { useLocation } from "wouter";
-import { useRecoilValue } from "recoil";
-import { isAuthenticatedState } from "@/store/auth";
-import ChatInterface from "@/components/chat/chat-interface";
-import DocumentList from "@/components/chat/chat-documentList";
-import PdfUpload from "@/components/pdf/pdf-upload";
-import ConversationList from "@/components/chat/ConversationList";
-import MessageList from "@/components/chat/message-list";
-import { useNavigate } from "react-router-dom";
+import { useEffect } from 'react';
+import { useAuthStore } from '@/store/auth';
+import ChatInterface from '@/components/chat/chat-interface';
+import DocumentList from '@/components/chat/chat-documentList';
+import PdfUpload from '@/components/pdf/pdf-upload';
+import ConversationList from '@/components/chat/ConversationList';
+import MessageList from '@/components/chat/message-list';
+import { useNavigate } from 'react-router-dom';
 
 export default function Chat() {
-  const isAuthenticated = useRecoilValue(isAuthenticatedState);
-const navigate = useNavigate()
+  const { isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/auth");
+      navigate('/auth');
     }
   }, [isAuthenticated]);
 
   if (!isAuthenticated) return null;
-  
 
   return (
     <div className="container mx-auto px-4 py-8">

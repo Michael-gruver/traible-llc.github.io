@@ -1,9 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { useRecoilState, atom } from "recoil";
-import { useEffect, useState } from "react";
-import { formatDistanceToNow } from "date-fns";
-import { documentIdState, selectedConversationIdState } from "@/store/chat";
-import { Trash2 } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { useChatStore } from '@/store/chat';
+import { Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,9 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface Conversation {
   id: string;
@@ -23,15 +22,8 @@ interface Conversation {
   documents: { id: string }[];
 }
 
-export const conversationsState = atom<Conversation[]>({
-  key: "conversationsState",
-  default: [],
-});
-
 export default function ConversationList() {
-  const [conversations, setConversations] = useRecoilState(conversationsState);
-  const [selectedConversationId, setSelectedConversationId] = useRecoilState(selectedConversationIdState);
-  const [documentIds, setDocumentId] = useRecoilState(documentIdState);
+  const { conversations, setConversations, selectedConversationId, setSelectedConversationId, documentId, setDocumentId } = useChatStore();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
@@ -41,23 +33,23 @@ export default function ConversationList() {
     fetchConversations();
   }, [setConversations]);
 
-     const fetchConversations = async () => {
-       try {
-         const token = localStorage.getItem("token");
-         const response = await fetch(`${url}/api/conversations/`, {
-           headers: {
-             Authorization: `Bearer ${token}`,
-           },
-         });
-         const data = await response.json();
-         setConversations(data.conversations);
-       } catch (error) {
-         console.error("Failed to fetch conversations:", error);
-       }
-     };
+  const fetchConversations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${url}/api/conversations/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setConversations(data.conversations);
+    } catch (error) {
+      console.error('Failed to fetch conversations:', error);
+    }
+  };
 
   const handleSelectConversation = (id: string, documentIds: string[]) => {
-    console.log("Selected conversation ID:", id);
+    console.log('Selected conversation ID:', id);
     if (documentIds.length > 0) {
       setDocumentId(documentIds);
     }
@@ -67,9 +59,9 @@ export default function ConversationList() {
   const handleDeleteConversation = async (id: string) => {
     try {
       setIsDeleting(true);
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       const response = await fetch(`${url}/api/conversations/${id}/delete/`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -78,18 +70,18 @@ export default function ConversationList() {
       if (response.ok) {
         setConversations(conversations.filter(conv => conv.id !== id));
         if (selectedConversationId === id) {
-          setSelectedConversationId("");
+          setSelectedConversationId('');
           setDocumentId([]);
         }
         toast({
-          title: "Success",
-          description: "Conversation deleted successfully",
+          title: 'Success',
+          description: 'Conversation deleted successfully',
         });
       } else {
-        console.error("Failed to delete conversation:", await response.text());
+        console.error('Failed to delete conversation:', await response.text());
       }
     } catch (error) {
-      console.error("Error deleting conversation:", error);
+      console.error('Error deleting conversation:', error);
     } finally {
       setIsDeleting(false);
       setDeleteId(null);
@@ -103,7 +95,7 @@ export default function ConversationList() {
       </h3>
       <div className="flex flex-col gap-2">
         {conversations?.length > 0 ? (
-          conversations.map(({ id, title, created_at, documents }) => (
+          conversations.map(({ id, title, created_at, documents = [] }) => (
             <Button
               key={id}
               variant="outline"
@@ -111,7 +103,7 @@ export default function ConversationList() {
               onClick={() =>
                 handleSelectConversation(
                   id,
-                  documents.map((doc) => doc.id)
+                  documents.map((doc: any) => doc.id)
                 )
               }
             >
@@ -130,11 +122,11 @@ export default function ConversationList() {
               </div>
               <Dialog
                 open={deleteId === id}
-                onOpenChange={(open) => setDeleteId(open ? id : null)}
+                onOpenChange={open => setDeleteId(open ? id : null)}
               >
                 <DialogTrigger asChild>
                   <span
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
                     className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -165,7 +157,7 @@ export default function ConversationList() {
                       className="bg-red-600 hover:bg-red-700 text-white"
                       disabled={isDeleting}
                     >
-                      {isDeleting ? <LoadingSpinner /> : "Delete"}
+                      {isDeleting ? <LoadingSpinner /> : 'Delete'}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

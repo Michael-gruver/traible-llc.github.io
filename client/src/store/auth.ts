@@ -1,8 +1,30 @@
-import { atom } from "recoil";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-const token = localStorage.getItem("token");
+interface AuthState {
+  isAuthenticated: boolean;
+  token: string | null;
+  setToken: (token: string | null) => void;
+  logout: () => void;
+}
 
-export const isAuthenticatedState = atom({
-  key: "isAuthenticated",
-  default: !!token, // If token exists, default to true; otherwise, false
-});
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      isAuthenticated: false,
+      token: null,
+      setToken: (token) => set({ token, isAuthenticated: !!token }),
+      logout: () => set({ token: null, isAuthenticated: false }),
+    }),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({ token: state.token, isAuthenticated: state.isAuthenticated }),
+    }
+  )
+);
+
+// Initialize auth state from localStorage
+const token = localStorage.getItem('token');
+if (token) {
+  useAuthStore.getState().setToken(token);
+}

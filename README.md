@@ -23,11 +23,13 @@ A modern React application built with TypeScript, Vite, and Tailwind CSS.
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Copy environment variables:
+
    ```bash
    cp .env.example .env
    ```

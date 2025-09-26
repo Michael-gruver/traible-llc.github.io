@@ -121,13 +121,12 @@
 //     </div>
 //   );
 // }
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
-import { Download, Trash2, ChevronDown, ChevronUp } from "lucide-react";
-import { useRecoilState } from "recoil";
-import { documentIdsState, loaderState } from "@/store/chat";
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import axios from 'axios';
+import { Download, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useChatStore } from '@/store/chat';
 import {
   Dialog,
   DialogContent,
@@ -136,7 +135,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 interface Document {
   id: number;
@@ -145,9 +144,8 @@ interface Document {
 }
 
 export default function DocumentList() {
-  const [documents, setDocuments] = useRecoilState<string[]>(documentIdsState);
+  const { documentIds, setDocumentIds, loader, setLoader } = useChatStore();
   const [documentList, setDocumentList] = useState<Document[]>([]);
-  const [loader, setLoader] = useRecoilState(loaderState);
   const [isOpen, setIsOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const { toast } = useToast();
@@ -155,17 +153,17 @@ export default function DocumentList() {
 
   const fetchDocuments = async () => {
     try {
-      const token = localStorage.getItem("token");
-      console.log("Fetching documents...");
+      const token = localStorage.getItem('token');
+      console.log('Fetching documents...');
       const response = await axios.get(`${url}/api/documents`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       });
-      setDocuments(response.data.documents);
+      setDocumentIds(response.data.documents);
     } catch (error) {
-      console.error("Error fetching documents:", error);
+      console.error('Error fetching documents:', error);
     }
   };
 
@@ -181,29 +179,29 @@ export default function DocumentList() {
 
   const fetchDocumentList = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       const response = await fetch(`${url}/api/documents/list/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       setDocumentList(data.documents);
     } catch (error) {
-      console.error("Failed to fetch documentList:", error);
+      console.error('Failed to fetch documentList:', error);
     }
   };
 
   const handleDownload = async (downloadUrl: string, title: string) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       const response = await fetch(`${url}${downloadUrl}`, {
-        method: "GET",
+        method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {
         toast({
-          title: "Error",
-          description: "Failed to download, please try again later",
+          title: 'Error',
+          description: 'Failed to download, please try again later',
         });
         return;
       }
@@ -211,7 +209,7 @@ export default function DocumentList() {
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
 
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = blobUrl;
       a.download = title;
       document.body.appendChild(a);
@@ -220,39 +218,39 @@ export default function DocumentList() {
       window.URL.revokeObjectURL(blobUrl);
 
       toast({
-        title: "Download successful",
-        description: "Document downloaded successfully",
+        title: 'Download successful',
+        description: 'Document downloaded successfully',
       });
     } catch (error) {
-      console.error("Download failed:", error);
+      console.error('Download failed:', error);
       toast({
-        title: "Error",
-        description: "Failed to download, please try again later",
+        title: 'Error',
+        description: 'Failed to download, please try again later',
       });
     }
   };
 
   const handleDelete = async (documentId: number) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       const response = await fetch(
         `${url}/api/documents/${documentId}/delete/`,
         {
-          method: "DELETE",
+          method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       if (!response.ok) {
-        toast({ title: "Error", description: "Failed to delete document" });
+        toast({ title: 'Error', description: 'Failed to delete document' });
         return;
       }
 
-      setDocumentList(documentList.filter((doc) => doc.id !== documentId));
-      toast({ title: "Deleted", description: "Document deleted successfully" });
+      setDocumentList(documentList.filter(doc => doc.id !== documentId));
+      toast({ title: 'Deleted', description: 'Document deleted successfully' });
     } catch (error) {
-      console.error("Delete failed:", error);
-      toast({ title: "Error", description: "Failed to delete document" });
+      console.error('Delete failed:', error);
+      toast({ title: 'Error', description: 'Failed to delete document' });
     }
   };
 
@@ -263,7 +261,7 @@ export default function DocumentList() {
           Documents
         </h2>
         <Button variant="outline" onClick={() => setIsOpen(!isOpen)}>
-          {isOpen ? "Hide Documents" : "Show Documents"}
+          {isOpen ? 'Hide Documents' : 'Show Documents'}
           {isOpen ? (
             <ChevronUp className="ml-2" />
           ) : (
@@ -291,13 +289,13 @@ export default function DocumentList() {
                   </Button>
                   <Dialog
                     open={deleteId === id}
-                    onOpenChange={(open) => setDeleteId(open ? id : null)}
+                    onOpenChange={open => setDeleteId(open ? id : null)}
                   >
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
                         className="text-red-500 hover:text-red-600"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                       >
                         <Trash2 />
                       </Button>

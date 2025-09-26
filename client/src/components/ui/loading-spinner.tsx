@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 
 export function LoadingSpinner({ className }: { className?: string }) {
   return (
@@ -12,7 +12,7 @@ export function LoadingSpinner({ className }: { className?: string }) {
         className="w-6 h-6 text-primary"
         viewBox="0 0 24 24"
         animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
       >
         <circle
           className="opacity-25"

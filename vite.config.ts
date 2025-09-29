@@ -20,4 +20,8 @@ export default defineConfig({
     outDir: path.resolve(__dirname, 'dist/public'),
     emptyOutDir: true,
   },
+  define: {
+    'import.meta.env.VITE_API_URL': JSON.stringify('http://localhost:8000'),
+    'import.meta.env.VITE_FRONTEND_URL': JSON.stringify('http://localhost:5173'),
+  },
 });

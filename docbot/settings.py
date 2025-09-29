@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_extensions',
     'debug_toolbar',
-    'cacheops',
+    # 'cacheops',  # Disabled for development - requires Redis
     'accounts',
     'chatbot',
     'django_celery_results',
@@ -163,20 +163,20 @@ if DEBUG:
         "localhost",
     ]
 
-# Cacheops settings for Redis caching
-CACHEOPS_REDIS = {
-    'host': 'localhost',
-    'port': 6379,
-    'db': 1,
-    'socket_timeout': 3,
-}
+# Cacheops settings for Redis caching (disabled for development)
+# CACHEOPS_REDIS = {
+#     'host': 'localhost',
+#     'port': 6379,
+#     'db': 1,
+#     'socket_timeout': 3,
+# }
 
-CACHEOPS = {
-    'accounts.user': {'ops': 'get', 'timeout': 60*15},
-    'chatbot.document': {'ops': 'get', 'timeout': 60*15},
-    'chatbot.conversation': {'ops': 'get', 'timeout': 60*15},
-    'chatbot.message': {'ops': 'get', 'timeout': 60*15},
-}
+# CACHEOPS = {
+#     'accounts.user': {'ops': 'get', 'timeout': 60*15},
+#     'chatbot.document': {'ops': 'get', 'timeout': 60*15},
+#     'chatbot.conversation': {'ops': 'get', 'timeout': 60*15},
+#     'chatbot.message': {'ops': 'get', 'timeout': 60*15},
+# }
 
 # Cache settings for password reset tokens (using LocMemCache for development)
 CACHES = {

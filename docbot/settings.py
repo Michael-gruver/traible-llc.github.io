@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_extensions',
     'debug_toolbar',
-    'cacheops',
+    # 'cacheops',  # Disabled for development - requires Redis
     'accounts',
     'chatbot',
     'django_celery_results',
@@ -163,31 +163,31 @@ if DEBUG:
         "localhost",
     ]
 
-# Cacheops settings for Redis caching
-CACHEOPS_REDIS = {
-    'host': 'localhost',
-    'port': 6379,
-    'db': 1,
-    'socket_timeout': 3,
-}
+# Cacheops settings for Redis caching (disabled for development)
+# CACHEOPS_REDIS = {
+#     'host': 'localhost',
+#     'port': 6379,
+#     'db': 1,
+#     'socket_timeout': 3,
+# }
 
-CACHEOPS = {
-    'accounts.user': {'ops': 'get', 'timeout': 60*15},
-    'chatbot.document': {'ops': 'get', 'timeout': 60*15},
-    'chatbot.conversation': {'ops': 'get', 'timeout': 60*15},
-    'chatbot.message': {'ops': 'get', 'timeout': 60*15},
-}
+# CACHEOPS = {
+#     'accounts.user': {'ops': 'get', 'timeout': 60*15},
+#     'chatbot.document': {'ops': 'get', 'timeout': 60*15},
+#     'chatbot.conversation': {'ops': 'get', 'timeout': 60*15},
+#     'chatbot.message': {'ops': 'get', 'timeout': 60*15},
+# }
 
-# Redis cache settings
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
-    }
-} 
+# Redis cache settings (disabled for development)
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/1',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         }
+#     }
+# } 
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -234,13 +234,20 @@ FRONTEND_URL = "http://localhost:3000"
 AUTH_USER_MODEL = 'accounts.User'
 
 # Email settings
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+# For development: Use console backend to show emails in terminal
+# For production: Use SMTP backend with real email credentials
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_HOST_USER = 'noreply@traible.com'
+    DEFAULT_FROM_EMAIL = 'noreply@traible.com'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 # Cache settings for password reset tokens
 CACHES = {

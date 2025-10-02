@@ -4,7 +4,7 @@
 
 Traible is a comprehensive document intelligence platform that enables users to upload documents, extract insights using AI, and engage in intelligent conversations about their content. Built with modern technologies and enterprise-grade security.
 
-## 🚀 Quick Start
+## Quick Start
 
 This repository contains the complete Traible product across multiple branches:
 
@@ -13,19 +13,19 @@ This repository contains the complete Traible product across multiple branches:
 
 ### Choose Your Development Path
 
-#### 🔧 Backend Development
+#### Backend Development
 ```bash
 git checkout traible-chat
 # Follow backend setup instructions in that branch's README
 ```
 
-#### 🎨 Frontend Development  
+#### Frontend Development  
 ```bash
 git checkout traible-chat-FE
 # Follow frontend setup instructions in that branch's README
 ```
 
-#### 🚀 Full Stack Development
+#### Full Stack Development
 ```bash
 # Terminal 1 - Backend
 git checkout traible-chat
@@ -39,16 +39,16 @@ npm install
 npm run dev
 ```
 
-## 📋 Product Overview
+## Product Overview
 
-### 🎯 **Core Features**
+### **Core Features**
 - **Document Upload & Processing**: Secure PDF, DOC, TXT file handling with AI extraction
 - **Intelligent Chat**: AI-powered conversations about document content using AWS Bedrock
 - **User Management**: Complete authentication system with secure password recovery
 - **Real-time Interface**: Modern React frontend with responsive design
 - **Enterprise Security**: Rate limiting, input validation, and comprehensive security measures
 
-### 🏗️ **Architecture**
+### **Architecture**
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -72,7 +72,7 @@ npm run dev
                     └─────────────────────────┘
 ```
 
-### 🛠️ **Technology Stack**
+### **Technology Stack**
 
 #### Frontend (`traible-chat-FE` branch)
 - **React 18** with TypeScript for type-safe development
@@ -90,9 +90,9 @@ npm run dev
 - **AWS Bedrock** for AI model integration
 - **JWT Authentication** for secure API access
 
-## 📚 Branch Documentation
+## Branch Documentation
 
-### 🔧 Backend Branch (`traible-chat`)
+### Backend Branch (`traible-chat`)
 Complete Django-based backend system with:
 - **API Documentation**: Interactive Swagger UI at `/api/docs/`
 - **Authentication System**: JWT-based with password recovery
@@ -104,7 +104,7 @@ Complete Django-based backend system with:
 
 **[📖 View Backend Documentation](../../tree/traible-chat)**
 
-### 🎨 Frontend Branch (`traible-chat-FE`)
+### Frontend Branch (`traible-chat-FE`)
 Modern React application featuring:
 - **Document Intelligence**: Upload and analyze documents with AI
 - **Interactive Chat**: Real-time chat interface with AI responses
@@ -115,7 +115,7 @@ Modern React application featuring:
 
 **[📖 View Frontend Documentation](../../tree/traible-chat-FE)**
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - **Node.js** 18.18+ (for frontend)
@@ -153,7 +153,7 @@ Modern React application featuring:
 3. **Integration Testing**: Test both systems together
 4. **Deployment**: Use production guides in respective branches
 
-## 🔐 Security & Compliance
+## Security & Compliance
 
 - **Data Protection**: Secure file handling and storage
 - **Authentication**: JWT-based with secure password policies
@@ -177,7 +177,7 @@ Modern React application featuring:
 | Dark/Light Theme | ✅ | - | Complete |
 | Accessibility | ✅ | - | Complete |
 
-## 🚀 Deployment
+## Deployment
 
 ### Production Deployment Options
 
@@ -201,7 +201,7 @@ Each branch includes comprehensive environment setup:
 - **Staging**: Pre-production testing environment  
 - **Production**: Optimized for performance and security
 
-## 🤝 Contributing
+## Contributing
 
 ### Development Branches
 - **`traible-chat`**: Backend Django development
@@ -221,7 +221,7 @@ Each branch includes comprehensive environment setup:
 - **Documentation**: Update README and API docs with changes
 - **Security**: Follow security best practices for all changes
 
-## 📞 Support
+## Support
 
 ### Documentation
 - **[Backend Documentation](../../tree/traible-chat)**: Complete Django backend guide
@@ -239,10 +239,17 @@ Each branch includes comprehensive environment setup:
 - **Frontend Issues**: Use `traible-chat-FE` branch context
 - **Integration Issues**: Mention both branches and setup details
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Traible** - Transforming documents into intelligent, searchable knowledge. Built with ❤️ for developers and users who value security, performance, and great user experience.
+## Next Steps
+
+1. **Choose your development path** (Backend or Frontend)
+2. **Switch to the appropriate branch** (`traible-chat` or `traible-chat-FE`)
+3. **Follow the detailed setup instructions** in that branch's README
+4. **Start building** amazing document intelligence features!
+
+**Traible** - Transforming documents into intelligent, searchable knowledge. Built with heart for developers and users who value security, performance, and great user experience.

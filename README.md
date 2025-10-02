@@ -245,11 +245,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-## 🎯 Next Steps
-
-1. **Choose your development path** (Backend or Frontend)
-2. **Switch to the appropriate branch** (`traible-chat` or `traible-chat-FE`)
-3. **Follow the detailed setup instructions** in that branch's README
-4. **Start building** amazing document intelligence features!
-
 **Traible** - Transforming documents into intelligent, searchable knowledge. Built with ❤️ for developers and users who value security, performance, and great user experience.

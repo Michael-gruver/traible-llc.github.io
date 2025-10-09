@@ -2,9 +2,9 @@
 
 A comprehensive Django-based backend system for document intelligence, AI chat functionality, and secure user management. Built with modern Python technologies and enterprise-grade features.
 
-## 🚀 Features
+## Features
 
-### 🎯 **Core Features**
+### **Core Features**
 - **Document Processing**: Upload, analyze, and process PDF documents with AI-powered text extraction, image analysis, and table recognition
 - **AI Chat System**: Interactive chat with AI about document content using AWS Bedrock Claude 3 Sonnet
 - **User Authentication**: Secure JWT-based authentication with comprehensive user management
@@ -13,7 +13,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **Background Tasks**: Asynchronous document processing with Celery integration and progress tracking
 - **Health Monitoring**: Comprehensive system health checks, metrics, and Kubernetes-ready probes
 
-### 🔐 **Security Features**
+### **Security Features**
 - **Rate Limiting**: Configurable API rate limiting (1000/hour authenticated, 100/hour anonymous)
 - **Input Validation**: Comprehensive file and data validation with security scanning
 - **Token Security**: Cryptographically secure token generation and management with cache-based invalidation
@@ -23,7 +23,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **SQL Injection Protection**: Query sanitization and parameterized queries
 - **Password Security**: Strong password validation and secure reset mechanisms
 
-### 🎨 **Developer Experience**
+### **Developer Experience**
 - **API Documentation**: Interactive Swagger UI and ReDoc documentation with comprehensive examples
 - **Comprehensive Testing**: Unit tests, integration tests, and security tests
 - **Error Handling**: Structured error responses with detailed logging and graceful degradation
@@ -31,7 +31,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **Type Safety**: Python type hints and comprehensive validation
 - **Hot Reload**: Fast development with Django's built-in server
 
-### 🛠 **Production Features**
+### **Production Features**
 - **Scalability**: Horizontal scaling support with stateless design and Redis caching
 - **Caching**: Redis integration with model-level caching and session management
 - **Database Optimization**: Strategic indexes, query optimization, and connection pooling
@@ -39,7 +39,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **Deployment**: Production-ready configuration with environment-based settings
 - **Maintenance**: Automated cleanup commands and system maintenance tools
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
@@ -54,7 +54,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - [Tech Stack](#tech-stack)
 - [Contributing](#contributing)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 

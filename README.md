@@ -3,6 +3,7 @@
 A comprehensive Django-based backend system for document intelligence, AI chat functionality, and secure user management. Built with modern Python technologies and enterprise-grade features.
 
 ## Features
+## Features
 
 ### Core Features
 - **Document Processing**: Upload, analyze, and process PDF documents with AI-powered text extraction, image analysis, and table recognition
@@ -40,6 +41,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **Maintenance**: Automated cleanup commands and system maintenance tools
 
 ## Table of Contents
+## Table of Contents
 
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
@@ -54,6 +56,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - [Tech Stack](#tech-stack)
 - [Contributing](#contributing)
 
+## Getting Started
 ## Getting Started
 
 ### Prerequisites

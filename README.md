@@ -2,9 +2,9 @@
 
 A comprehensive Django-based backend system for document intelligence, AI chat functionality, and secure user management. Built with modern Python technologies and enterprise-grade features.
 
-## 🚀 Features
+## Features
 
-### 🎯 **Core Features**
+### Core Features
 - **Document Processing**: Upload, analyze, and process PDF documents with AI-powered text extraction, image analysis, and table recognition
 - **AI Chat System**: Interactive chat with AI about document content using AWS Bedrock Claude 3 Sonnet
 - **User Authentication**: Secure JWT-based authentication with comprehensive user management
@@ -13,7 +13,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **Background Tasks**: Asynchronous document processing with Celery integration and progress tracking
 - **Health Monitoring**: Comprehensive system health checks, metrics, and Kubernetes-ready probes
 
-### 🔐 **Security Features**
+### Security Features
 - **Rate Limiting**: Configurable API rate limiting (1000/hour authenticated, 100/hour anonymous)
 - **Input Validation**: Comprehensive file and data validation with security scanning
 - **Token Security**: Cryptographically secure token generation and management with cache-based invalidation
@@ -23,7 +23,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **SQL Injection Protection**: Query sanitization and parameterized queries
 - **Password Security**: Strong password validation and secure reset mechanisms
 
-### 🎨 **Developer Experience**
+### Developer Experience
 - **API Documentation**: Interactive Swagger UI and ReDoc documentation with comprehensive examples
 - **Comprehensive Testing**: Unit tests, integration tests, and security tests
 - **Error Handling**: Structured error responses with detailed logging and graceful degradation
@@ -31,7 +31,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **Type Safety**: Python type hints and comprehensive validation
 - **Hot Reload**: Fast development with Django's built-in server
 
-### 🛠 **Production Features**
+### Production Features
 - **Scalability**: Horizontal scaling support with stateless design and Redis caching
 - **Caching**: Redis integration with model-level caching and session management
 - **Database Optimization**: Strategic indexes, query optimization, and connection pooling
@@ -39,7 +39,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - **Deployment**: Production-ready configuration with environment-based settings
 - **Maintenance**: Automated cleanup commands and system maintenance tools
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
@@ -54,7 +54,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - [Tech Stack](#tech-stack)
 - [Contributing](#contributing)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -250,382 +250,37 @@ STATIC_ROOT=static/
 
 ### Authentication Endpoints
 
-#### **POST** `/api/auth/signup/`
-Register a new user account.
-
-**Request Body:**
-```json
-{
-  "username": "johndoe",
-  "email": "john@example.com",
-  "password": "SecurePassword123!",
-  "confirm_password": "SecurePassword123!"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Registration successful.",
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
-}
-```
-
-#### **POST** `/api/auth/login/`
-Authenticate user and get JWT tokens.
-
-**Request Body:**
-```json
-{
-  "username_or_email": "john@example.com",
-  "password": "SecurePassword123!"
-}
-```
-
-#### **POST** `/api/auth/password-reset-request/`
-Request password reset email.
-
-**Request Body:**
-```json
-{
-  "email": "john@example.com"
-}
-```
-
-#### **POST** `/api/auth/password-reset-validate/`
-Validate password reset token.
-
-**Request Body:**
-```json
-{
-  "token": "reset_token_here",
-  "uid": "user_id_here"
-}
-```
-
-#### **POST** `/api/auth/password-reset-confirm/`
-Confirm password reset with new password.
-
-**Request Body:**
-```json
-{
-  "token": "reset_token_here",
-  "uid": "user_id_here",
-  "password": "NewSecurePassword123!"
-}
-```
+- **POST** `/api/auth/signup/` - Register a new user account
+- **POST** `/api/auth/login/` - Authenticate user and get JWT tokens
+- **POST** `/api/auth/password-reset-request/` - Request password reset email
+- **POST** `/api/auth/password-reset-validate/` - Validate password reset token
+- **POST** `/api/auth/password-reset-confirm/` - Confirm password reset with new password
 
 ### Document Management Endpoints
 
-#### **POST** `/api/documents/upload/`
-Upload a PDF document for processing.
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-Content-Type: multipart/form-data
-```
-
-**Request Body:**
-```
-file: <PDF file>
-```
-
-**Response:**
-```json
-{
-  "message": "Document uploaded and queued for processing",
-  "document_id": 123,
-  "processing_status": "PENDING",
-  "title": "document.pdf"
-}
-```
-
-#### **GET** `/api/documents/`
-Get list of user's documents.
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-```json
-{
-  "documents": [
-    {
-      "id": 123,
-      "title": "document.pdf",
-      "is_processed": true,
-      "created_at": "2024-01-01T12:00:00Z",
-      "content_type": "application/pdf"
-    }
-  ]
-}
-```
-
-#### **GET** `/api/documents/list/`
-Get detailed list of user's documents with processing status.
-
-**Response:**
-```json
-{
-  "documents": [
-    {
-      "id": 123,
-      "title": "document.pdf",
-      "created_at": "2024-01-01T12:00:00Z",
-      "is_processed": true,
-      "processing_status": "COMPLETED",
-      "processing_progress": 100,
-      "page_count": 25,
-      "has_images": true,
-      "image_count": 5,
-      "file_size": 1024000,
-      "download_url": "/api/documents/123/download/"
-    }
-  ]
-}
-```
-
-#### **GET** `/api/documents/{document_id}/status/`
-Get processing status of a specific document.
-
-**Response:**
-```json
-{
-  "document_id": 123,
-  "title": "document.pdf",
-  "is_processed": true,
-  "processing_status": "COMPLETED",
-  "processing_progress": 100,
-  "processing_error": null,
-  "has_images": true,
-  "image_count": 5,
-  "created_at": "2024-01-01T12:00:00Z"
-}
-```
-
-#### **GET** `/api/documents/{document_id}/download/`
-Download the original PDF file.
-
-**Response:** Binary PDF file with appropriate headers.
-
-#### **DELETE** `/api/documents/{document_id}/delete/`
-Delete a document and its associated data.
-
-**Response:**
-```json
-{
-  "message": "Document deleted successfully"
-}
-```
+- **POST** `/api/documents/upload/` - Upload a PDF document for processing
+- **GET** `/api/documents/` - Get list of user's documents
+- **GET** `/api/documents/list/` - Get detailed list with processing status
+- **GET** `/api/documents/{document_id}/status/` - Get processing status of specific document
+- **GET** `/api/documents/{document_id}/download/` - Download the original PDF file
+- **DELETE** `/api/documents/{document_id}/delete/` - Delete a document and its associated data
 
 ### Chat and Conversation Endpoints
 
-#### **POST** `/api/chat/`
-Send a message to the AI chat system.
-
-**Request Body:**
-```json
-{
-  "message": "What is the main topic of this document?",
-  "document_ids": [123, 124],
-  "conversation_id": "uuid-here",
-  "stream": false
-}
-```
-
-**Response:**
-```json
-{
-  "conversation_id": "uuid-here",
-  "message": "The main topic of the document is...",
-  "document_ids": [123, 124]
-}
-```
-
-#### **GET** `/api/conversations/`
-Get list of user's conversations.
-
-**Response:**
-```json
-{
-  "conversations": [
-    {
-      "id": "uuid-here",
-      "title": "What is the main topic of this document?",
-      "created_at": "2024-01-01T12:00:00Z",
-      "message_count": 4,
-      "documents": [
-        {
-          "id": 123,
-          "title": "document.pdf"
-        }
-      ]
-    }
-  ]
-}
-```
-
-#### **GET** `/api/conversations/{conversation_id}/`
-Get detailed conversation with message history.
-
-**Response:**
-```json
-{
-  "conversation": {
-    "id": "uuid-here",
-    "title": "What is the main topic of this document?",
-    "created_at": "2024-01-01T12:00:00Z",
-    "timeline": [
-      {
-        "type": "message",
-        "id": "msg-uuid",
-        "content": "What is the main topic of this document?",
-        "role": "user",
-        "created_at": "2024-01-01T12:00:00Z"
-      },
-      {
-        "type": "message",
-        "id": "msg-uuid-2",
-        "content": "The main topic of the document is...",
-        "role": "assistant",
-        "created_at": "2024-01-01T12:01:00Z"
-      }
-    ]
-  }
-}
-```
-
-#### **POST** `/api/conversations/initialize/`
-Create a new conversation.
-
-**Request Body:**
-```json
-{
-  "document_ids": [123, 124]
-}
-```
-
-**Response:**
-```json
-{
-  "conversation_id": "uuid-here",
-  "documents": [
-    {
-      "id": 123,
-      "title": "document.pdf"
-    }
-  ]
-}
-```
-
-#### **DELETE** `/api/conversations/{conversation_id}/delete/`
-Delete a conversation and all its messages.
-
-**Response:**
-```json
-{
-  "message": "Conversation deleted successfully"
-}
-```
+- **POST** `/api/chat/` - Send a message to the AI chat system
+- **GET** `/api/conversations/` - Get list of user's conversations
+- **GET** `/api/conversations/{conversation_id}/` - Get detailed conversation with message history
+- **POST** `/api/conversations/initialize/` - Create a new conversation
+- **DELETE** `/api/conversations/{conversation_id}/delete/` - Delete a conversation and all its messages
 
 ### Health and Monitoring Endpoints
 
-#### **GET** `/api/health/`
-Basic health check.
+- **GET** `/api/health/` - Basic health check
+- **GET** `/api/health/detailed/` - Detailed health check with system metrics
+- **GET** `/api/metrics/` - System performance metrics
 
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": 1640995200.0,
-  "version": "1.0.0"
-}
-```
-
-#### **GET** `/api/health/detailed/`
-Detailed health check with system metrics.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": 1640995200.0,
-  "version": "1.0.0",
-  "checks": {
-    "database": {
-      "status": "healthy",
-      "response_time": 0
-    },
-    "cache": {
-      "status": "healthy"
-    },
-    "disk": {
-      "status": "healthy",
-      "free_space_gb": 45.2,
-      "total_space_gb": 100.0,
-      "free_percentage": 45.2
-    },
-    "memory": {
-      "status": "healthy",
-      "used_percentage": 65.4,
-      "available_gb": 2.1
-    }
-  }
-}
-```
-
-#### **GET** `/api/metrics/`
-System performance metrics.
-
-**Response:**
-```json
-{
-  "timestamp": 1640995200.0,
-  "system": {
-    "cpu_percent": 25.4,
-    "memory": {
-      "total_gb": 8.0,
-      "available_gb": 2.1,
-      "used_percent": 73.8
-    },
-    "disk": {
-      "total_gb": 100.0,
-      "free_gb": 45.2,
-      "used_percent": 54.8
-    }
-  },
-  "process": {
-    "pid": 12345,
-    "memory_mb": 256.7,
-    "cpu_percent": 12.3,
-    "num_threads": 8
-  }
-}
-```
-
-#### **GET** `/api/readiness/`
-Kubernetes readiness probe.
-
-**Response:**
-```json
-{
-  "status": "ready"
-}
-```
-
-#### **GET** `/api/liveness/`
-Kubernetes liveness probe.
-
-**Response:**
-```json
-{
-  "status": "alive"
-}
-```
+- **GET** `/api/readiness/` - Kubernetes readiness probe
+- **GET** `/api/liveness/` - Kubernetes liveness probe
 
 ## Database Models
 
@@ -770,17 +425,10 @@ The application uses Celery for asynchronous task processing, particularly for d
 4. **Progress Updates**: Update database with processing status and progress
 
 **Task Configuration:**
-```python
-@shared_task(
-    bind=True, 
-    name="process_document_task", 
-    time_limit=14400, 
-    soft_time_limit=14100,
-    autoretry_for=(Exception,),
-    retry_kwargs={'max_retries': 3, 'countdown': 60},
-    acks_late=True
-)
-```
+- Time limit: 4 hours (14400 seconds)
+- Max retries: 3 attempts with 60-second intervals
+- Late acknowledgment enabled
+- Auto-retry on exceptions
 
 **Memory Optimization:**
 - Processes documents in configurable chunks (30-100 pages based on document size)
@@ -796,29 +444,10 @@ The application uses Celery for asynchronous task processing, particularly for d
 
 ### Celery Worker Management
 
-**Starting Workers:**
-```bash
-# Start Celery worker
-celery -A docbot worker -l info
-
-# Start with specific concurrency
-celery -A docbot worker -l info --concurrency=4
-
-# Start with auto-scaling
-celery -A docbot worker -l info --autoscale=10,3
-```
-
-**Monitoring Tasks:**
-```bash
-# Monitor task queue
-celery -A docbot inspect active
-
-# Check worker status
-celery -A docbot inspect stats
-
-# View task results
-celery -A docbot result <task_id>
-```
+**Worker Management:**
+- Start worker: `celery -A docbot worker -l info`
+- Monitor tasks: `celery -A docbot inspect active`
+- Check worker status: `celery -A docbot inspect stats`
 
 ### Redis Configuration
 
@@ -871,13 +500,9 @@ The application leverages AWS Bedrock for AI-powered document analysis and chat 
 - **Error Handling**: Comprehensive retry logic with exponential backoff
 
 **Configuration:**
-```python
-# AWS Bedrock Configuration
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-REGION_NAME=us-east-1
-BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
-```
+- AWS credentials and region configuration
+- Claude 3 Sonnet model integration
+- Rate limiting and retry logic
 
 **Rate Limiting:**
 - **Per Second**: 1.5 calls/second
@@ -919,13 +544,9 @@ BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
 - **Layout Analysis**: Understanding document structure
 
 **Usage:**
-```python
-# Table extraction from document images
-response = self.textract_client.analyze_document(
-    Document={'Bytes': img_bytes},
-    FeatureTypes=['TABLES', 'FORMS']
-)
-```
+- Table detection and extraction from document images
+- Form analysis and structured data extraction
+- OCR for scanned documents
 
 ### Vector Search & Embeddings
 
@@ -998,23 +619,11 @@ vector_stores/
 - Reference tracking
 - Error handling
 
-**Example Chat Flow:**
-```python
-# 1. Search relevant documents
-search_results, errors = bedrock.search_documents(
-    query=user_message,
-    document_ids=selected_documents,
-    user_id=user.id
-)
-
-# 2. Generate response with context
-response = bedrock.get_response(
-    question=user_message,
-    context=aggregated_context,
-    conversation_history=message_history,
-    stream=stream_mode
-)
-```
+**Chat Flow:**
+1. Search relevant documents using vector similarity
+2. Aggregate context from multiple documents
+3. Generate AI response with conversation history
+4. Support both streaming and batch responses
 
 ### Security & Best Practices
 
@@ -1335,58 +944,18 @@ The application provides comprehensive health monitoring endpoints for system re
 - Document processing metrics
 
 **Integration:**
-```python
-# Example Prometheus integration
-from prometheus_client import Counter, Histogram, Gauge
-
-http_requests_total = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint'])
-http_request_duration = Histogram('http_request_duration_seconds', 'HTTP request duration')
-active_tasks = Gauge('celery_active_tasks', 'Number of active Celery tasks')
-```
+- HTTP request metrics (count, duration)
+- Database query performance
+- Cache hit/miss ratios
+- Task queue depth and processing metrics
 
 #### **Logging Configuration**
 
 **Structured Logging:**
-```python
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'json': {
-            'format': '{"level": "%(levelname)s", "time": "%(asctime)s", "module": "%(module)s", "message": "%(message)s"}',
-        },
-    },
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': 'application.log',
-            'formatter': 'verbose',
-        },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'json',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'chatbot': {
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-    },
-}
-```
+- File and console handlers with different formatters
+- JSON formatting for production environments
+- Separate log levels for Django and application components
+- Comprehensive error tracking and debugging information
 
 ### Performance Monitoring
 
@@ -1458,16 +1027,9 @@ LOGGING = {
 - Vector store optimization
 
 **Cleanup Commands:**
-```bash
-# Clean up expired password reset tokens
-python manage.py cleanup_tokens
-
-# Remove orphaned files
-python manage.py cleanup_files
-
-# Optimize vector stores
-python manage.py optimize_vector_stores
-```
+- `python manage.py cleanup_tokens` - Clean up expired password reset tokens
+- `python manage.py cleanup_files` - Remove orphaned files
+- `python manage.py optimize_vector_stores` - Optimize vector stores
 
 #### **System Maintenance**
 
@@ -1491,567 +1053,156 @@ python manage.py optimize_vector_stores
 #### **Environment Configuration**
 
 **Required Environment Variables:**
-```bash
-# Django Settings
-SECRET_KEY=your-production-secret-key-here
-DEBUG=False
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-
-# Database (PostgreSQL)
-DATABASE_URL=postgresql://username:password@localhost:5432/traible_prod
-
-# Redis
-REDIS_URL=redis://localhost:6379/0
-
-# AWS Configuration
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-REGION_NAME=us-east-1
-BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
-
-# Email Configuration
-EMAIL_HOST=smtp.your-provider.com
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER=your-email@yourdomain.com
-EMAIL_HOST_PASSWORD=your-email-password
-DEFAULT_FROM_EMAIL=your-email@yourdomain.com
-
-# Frontend URL
-FRONTEND_URL=https://yourdomain.com
-
-# Security
-CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-```
+- Django settings (SECRET_KEY, DEBUG, ALLOWED_HOSTS)
+- Database configuration (DATABASE_URL)
+- Redis configuration (REDIS_URL)
+- AWS credentials and region settings
+- Email configuration for notifications
+- Frontend URL and CORS settings
 
 #### **Database Setup**
 
-**PostgreSQL Installation:**
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-
-# Create database and user
-sudo -u postgres psql
-CREATE DATABASE traible_prod;
-CREATE USER traible_user WITH PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE traible_prod TO traible_user;
-\q
-```
-
-**Database Migration:**
-```bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py createsuperuser
-```
+**PostgreSQL Setup:**
+- Install PostgreSQL and create database
+- Create user with appropriate permissions
+- Run migrations: `python manage.py migrate`
+- Create superuser: `python manage.py createsuperuser`
 
 #### **Redis Setup**
 
-**Redis Installation:**
-```bash
-# Ubuntu/Debian
-sudo apt install redis-server
-
-# Start Redis
-sudo systemctl start redis-server
-sudo systemctl enable redis-server
-
-# Test connection
-redis-cli ping
-```
+**Redis Setup:**
+- Install and start Redis server
+- Enable auto-start on boot
+- Test connection with `redis-cli ping`
 
 #### **Static Files & Media**
 
-**Static Files Collection:**
-```bash
-python manage.py collectstatic --noinput
-```
-
-**Media Directory Setup:**
-```bash
-mkdir -p media/documents
-chmod 755 media/documents
-```
+**Setup:**
+- Collect static files: `python manage.py collectstatic --noinput`
+- Create media directories with proper permissions
 
 ### Web Server Configuration
 
 #### **Nginx Configuration**
 
-**Nginx Virtual Host:**
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
-
-    ssl_certificate /path/to/your/certificate.crt;
-    ssl_certificate_key /path/to/your/private.key;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512;
-
-    client_max_body_size 100M;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static/ {
-        alias /path/to/your/project/static/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /media/ {
-        alias /path/to/your/project/media/;
-        expires 1y;
-        add_header Cache-Control "public";
-    }
-}
-```
+**Requirements:**
+- SSL/TLS termination with Let's Encrypt
+- Proxy pass to Gunicorn on port 8000
+- Static file serving with caching headers
+- File upload support (100MB max)
 
 #### **Gunicorn Configuration**
 
-**Gunicorn Service:**
-```bash
-# Install Gunicorn
-pip install gunicorn
-
-# Create Gunicorn configuration
-cat > gunicorn.conf.py << EOF
-bind = "127.0.0.1:8000"
-workers = 4
-worker_class = "sync"
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 100
-timeout = 30
-keepalive = 2
-preload_app = True
-user = "www-data"
-group = "www-data"
-tmp_upload_dir = None
-EOF
-```
-
-**Systemd Service:**
-```ini
-[Unit]
-Description=Traible Gunicorn daemon
-After=network.target
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/path/to/your/project
-ExecStart=/path/to/venv/bin/gunicorn --config gunicorn.conf.py docbot.wsgi:application
-ExecReload=/bin/kill -s HUP $MAINPID
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+**Setup:**
+- Install Gunicorn: `pip install gunicorn`
+- Configure workers, timeouts, and connection limits
+- Create systemd service for auto-start and management
 
 ### Celery Configuration
 
 #### **Celery Worker Service**
 
-**Systemd Service for Celery:**
-```ini
-[Unit]
-Description=Traible Celery Worker
-After=network.target redis.service
-
-[Service]
-Type=forking
-User=www-data
-Group=www-data
-WorkingDirectory=/path/to/your/project
-EnvironmentFile=/path/to/your/project/.env
-ExecStart=/path/to/venv/bin/celery -A docbot worker -l info --detach
-ExecStop=/path/to/venv/bin/celery -A docbot control shutdown
-ExecReload=/bin/kill -s HUP $MAINPID
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Celery Beat Service (for scheduled tasks):**
-```ini
-[Unit]
-Description=Traible Celery Beat
-After=network.target redis.service
-
-[Service]
-Type=forking
-User=www-data
-Group=www-data
-WorkingDirectory=/path/to/your/project
-EnvironmentFile=/path/to/your/project/.env
-ExecStart=/path/to/venv/bin/celery -A docbot beat -l info --detach
-ExecStop=/bin/kill -s TERM $MAINPID
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+**Setup:**
+- Create systemd services for Celery worker and beat scheduler
+- Configure auto-start and restart policies
+- Set proper user permissions and environment variables
 
 ### Docker Deployment
 
 #### **Dockerfile**
 
-```dockerfile
-FROM python:3.9-slim
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Set work directory
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        postgresql-client \
-        redis-tools \
-        tesseract-ocr \
-        poppler-utils \
-        libgl1-mesa-glx \
-        libglib2.0-0 \
-        libsm6 \
-        libxext6 \
-        libxrender-dev \
-        libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy project
-COPY . /app/
-
-# Create directories
-RUN mkdir -p media vector_stores static
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Expose port
-EXPOSE 8000
-
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "docbot.wsgi:application"]
-```
+**Key Components:**
+- Python 3.9 slim base image
+- System dependencies (PostgreSQL client, Redis tools, OCR libraries)
+- Python dependencies from requirements.txt
+- Static file collection and directory setup
+- Gunicorn as WSGI server
 
 #### **Docker Compose**
 
-```yaml
-version: '3.8'
-
-services:
-  db:
-    image: postgres:13
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_DB: traible_prod
-      POSTGRES_USER: traible_user
-      POSTGRES_PASSWORD: secure_password
-    ports:
-      - "5432:5432"
-
-  redis:
-    image: redis:6-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-
-  web:
-    build: .
-    command: gunicorn --bind 0.0.0.0:8000 docbot.wsgi:application
-    volumes:
-      - .:/app
-      - media_data:/app/media
-      - vector_data:/app/vector_stores
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://traible_user:secure_password@db:5432/traible_prod
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - db
-      - redis
-
-  celery:
-    build: .
-    command: celery -A docbot worker -l info
-    volumes:
-      - .:/app
-      - media_data:/app/media
-      - vector_data:/app/vector_stores
-    environment:
-      - DATABASE_URL=postgresql://traible_user:secure_password@db:5432/traible_prod
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - db
-      - redis
-
-  celery-beat:
-    build: .
-    command: celery -A docbot beat -l info
-    volumes:
-      - .:/app
-    environment:
-      - DATABASE_URL=postgresql://traible_user:secure_password@db:5432/traible_prod
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - db
-      - redis
-
-volumes:
-  postgres_data:
-  redis_data:
-  media_data:
-  vector_data:
-```
+**Services:**
+- PostgreSQL database with persistent volumes
+- Redis for caching and task queue
+- Web application with Gunicorn
+- Celery worker for background tasks
+- Celery beat for scheduled tasks
+- Shared volumes for media and vector stores
 
 ### Kubernetes Deployment
 
-#### **Deployment YAML**
+#### **Kubernetes Deployment**
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: traible-backend
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: traible-backend
-  template:
-    metadata:
-      labels:
-        app: traible-backend
-    spec:
-      containers:
-      - name: traible-backend
-        image: your-registry/traible-backend:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: traible-secrets
-              key: database-url
-        - name: REDIS_URL
-          valueFrom:
-            secretKeyRef:
-              name: traible-secrets
-              key: redis-url
-        - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: traible-secrets
-              key: secret-key
-        livenessProbe:
-          httpGet:
-            path: /api/liveness/
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /api/readiness/
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: traible-backend-service
-spec:
-  selector:
-    app: traible-backend
-  ports:
-  - port: 80
-    targetPort: 8000
-  type: LoadBalancer
-```
+**Key Features:**
+- 3 replicas for high availability
+- Health checks (liveness and readiness probes)
+- Resource limits and requests
+- Environment variables from secrets
+- LoadBalancer service for external access
 
 ### SSL/TLS Configuration
 
-#### **Let's Encrypt with Certbot**
+#### **SSL/TLS Configuration**
 
-```bash
-# Install Certbot
-sudo apt install certbot python3-certbot-nginx
-
-# Obtain certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-
-# Auto-renewal
-sudo crontab -e
-# Add: 0 12 * * * /usr/bin/certbot renew --quiet
-```
+**Setup:**
+- Install Certbot for Let's Encrypt certificates
+- Obtain certificates for domain
+- Configure auto-renewal with cron job
 
 ### Backup Strategy
 
-#### **Database Backup**
+#### **Backup Strategy**
 
-```bash
-#!/bin/bash
-# backup_db.sh
+**Database Backup:**
+- Automated PostgreSQL dumps with compression
+- 30-day retention policy
+- Scheduled daily backups
 
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups/database"
-DB_NAME="traible_prod"
-
-mkdir -p $BACKUP_DIR
-
-# Create backup
-pg_dump -h localhost -U traible_user $DB_NAME > $BACKUP_DIR/backup_$DATE.sql
-
-# Compress backup
-gzip $BACKUP_DIR/backup_$DATE.sql
-
-# Remove backups older than 30 days
-find $BACKUP_DIR -name "backup_*.sql.gz" -mtime +30 -delete
-```
-
-#### **Media Files Backup**
-
-```bash
-#!/bin/bash
-# backup_media.sh
-
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups/media"
-MEDIA_DIR="/path/to/your/project/media"
-
-mkdir -p $BACKUP_DIR
-
-# Create tar backup
-tar -czf $BACKUP_DIR/media_$DATE.tar.gz -C $MEDIA_DIR .
-
-# Remove backups older than 30 days
-find $BACKUP_DIR -name "media_*.tar.gz" -mtime +30 -delete
-```
+**Media Files Backup:**
+- Compressed tar archives of uploaded documents
+- Automated cleanup of old backups
+- Regular backup verification
 
 ### Monitoring & Logging
 
-#### **Log Rotation**
+#### **Monitoring & Logging**
 
-```bash
-# /etc/logrotate.d/traible
-/path/to/your/project/logs/*.log {
-    daily
-    missingok
-    rotate 52
-    compress
-    delaycompress
-    notifempty
-    create 644 www-data www-data
-    postrotate
-        systemctl reload traible-backend
-    endscript
-}
-```
+**Log Rotation:**
+- Daily log rotation with 52-week retention
+- Compression and cleanup of old logs
+- Automatic service reload after rotation
 
-#### **Health Check Monitoring**
-
-```bash
-#!/bin/bash
-# health_check.sh
-
-HEALTH_URL="https://yourdomain.com/api/health/detailed/"
-ALERT_EMAIL="admin@yourdomain.com"
-
-response=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_URL)
-
-if [ $response != "200" ]; then
-    echo "Health check failed with status: $response" | mail -s "Traible Health Check Failed" $ALERT_EMAIL
-fi
-```
+**Health Check Monitoring:**
+- Automated health check scripts
+- Email alerts for service failures
+- Integration with monitoring systems
 
 ### Performance Optimization
 
-#### **Database Optimization**
+#### **Performance Optimization**
 
-```sql
--- Create indexes for better performance
-CREATE INDEX CONCURRENTLY idx_documents_user_created ON documents(user_id, created_at);
-CREATE INDEX CONCURRENTLY idx_messages_conversation_created ON messages(conversation_id, created_at);
-CREATE INDEX CONCURRENTLY idx_conversations_user_created ON conversations(user_id, created_at);
+**Database Optimization:**
+- Strategic indexes on frequently queried columns
+- Regular table analysis for query optimization
+- Connection pooling and query caching
 
--- Analyze tables for query optimization
-ANALYZE documents;
-ANALYZE messages;
-ANALYZE conversations;
-```
-
-#### **Redis Optimization**
-
-```bash
-# Redis configuration optimization
-echo "maxmemory 1gb" >> /etc/redis/redis.conf
-echo "maxmemory-policy allkeys-lru" >> /etc/redis/redis.conf
-echo "save 900 1" >> /etc/redis/redis.conf
-echo "save 300 10" >> /etc/redis/redis.conf
-echo "save 60 10000" >> /etc/redis/redis.conf
-```
+**Redis Optimization:**
+- Memory limits and eviction policies
+- Persistent storage configuration
+- Connection pooling and timeout settings
 
 ### Security Hardening
 
-#### **Firewall Configuration**
+#### **Security Hardening**
 
-```bash
-# UFW firewall setup
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
-```
+**Firewall Configuration:**
+- UFW firewall with restrictive default policies
+- Allow only necessary ports (SSH, HTTP, HTTPS)
+- Deny all incoming traffic by default
 
-#### **System Security**
-
-```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Install fail2ban
-sudo apt install fail2ban
-
-# Configure fail2ban for SSH
-sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-sudo systemctl enable fail2ban
-sudo systemctl start fail2ban
-```
+**System Security:**
+- Regular system updates and security patches
+- Fail2ban for intrusion prevention
+- SSH security hardening
 
 ## Tech Stack
 
@@ -2088,102 +1239,33 @@ sudo systemctl start fail2ban
 
 ### Local Development Setup
 
-1. **Clone and Setup**:
-   ```bash
-   git clone <repository-url>
-   cd traible-llc.github.io
-   git checkout traible-chat
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-2. **Environment Configuration**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your local configuration
-   ```
-
-3. **Database Setup**:
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
-
-4. **Start Services**:
-   ```bash
-   # Terminal 1: Django server
-   python manage.py runserver
-   
-   # Terminal 2: Celery worker
-   celery -A docbot worker -l info
-   
-   # Terminal 3: Redis (if not running)
-   redis-server
-   ```
+1. **Clone and Setup**: Clone repository, create virtual environment, install dependencies
+2. **Environment Configuration**: Copy and configure environment variables
+3. **Database Setup**: Run migrations and create superuser
+4. **Start Services**: Start Django server, Celery worker, and Redis
 
 ### Testing
 
-**Run Tests**:
-```bash
-# Run all tests
-python manage.py test
-
-# Run specific app tests
-python manage.py test accounts
-python manage.py test chatbot
-
-# Run with coverage
-coverage run --source='.' manage.py test
-coverage report
-coverage html
-```
-
-**Test Structure**:
-- Unit tests for models and business logic
-- Integration tests for API endpoints
-- Security tests for authentication and authorization
-- Performance tests for document processing
+**Testing:**
+- Run all tests: `python manage.py test`
+- Run specific app tests: `python manage.py test accounts`
+- Coverage reporting with coverage.py
+- Unit, integration, security, and performance tests
 
 ### Code Quality
 
-**Linting and Formatting**:
-```bash
-# Python linting
-flake8 .
-black .
-isort .
-
-# Type checking
-mypy .
-
-# Frontend linting
-npm run lint
-npm run format
-```
-
-**Pre-commit Hooks**:
-```bash
-# Install pre-commit
-pip install pre-commit
-pre-commit install
-
-# Run on all files
-pre-commit run --all-files
-```
+**Code Quality:**
+- Python linting with flake8, black, and isort
+- Type checking with mypy
+- Frontend linting and formatting
+- Pre-commit hooks for automated checks
 
 ### API Documentation
 
-**Interactive Documentation**:
-- **Swagger UI**: `http://localhost:8000/api/docs/`
-- **ReDoc**: `http://localhost:8000/api/redoc/`
-
-**Schema Generation**:
-```bash
-# Generate OpenAPI schema
-python manage.py spectacular --file schema.yml
-```
+**API Documentation:**
+- Interactive Swagger UI and ReDoc documentation
+- OpenAPI schema generation with drf-spectacular
+- Comprehensive endpoint documentation
 
 ## Contributing
 
@@ -2234,26 +1316,10 @@ For feature requests, please provide:
 
 **Common Issues**:
 
-1. **Celery Worker Not Starting**:
-   - Check Redis connection: `redis-cli ping`
-   - Verify environment variables
-   - Check worker logs: `celery -A docbot worker -l debug`
-
-2. **Document Processing Fails**:
-   - Check AWS credentials and permissions
-   - Verify file format (PDF only)
-   - Check available disk space
-   - Review task logs in Django admin
-
-3. **Database Connection Issues**:
-   - Verify database is running
-   - Check connection string format
-   - Ensure database exists and user has permissions
-
-4. **Authentication Problems**:
-   - Check JWT token expiration
-   - Verify CORS settings
-   - Check email configuration for password reset
+1. **Celery Worker Not Starting**: Check Redis connection, environment variables, and worker logs
+2. **Document Processing Fails**: Verify AWS credentials, file format, disk space, and task logs
+3. **Database Connection Issues**: Check database status, connection string, and permissions
+4. **Authentication Problems**: Verify JWT tokens, CORS settings, and email configuration
 
 ## License
 

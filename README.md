@@ -48,7 +48,7 @@ A comprehensive Django-based backend system for document intelligence, AI chat f
 - [Database Models](#database-models)
 - [Background Tasks & Celery Configuration](#background-tasks--celery-configuration)
 - [AWS Integration](#aws-integration)
-- [Security Features](#security-features)
+- [Security Features](#security)
 - [Monitoring & Health Checks](#monitoring--health-checks)
 - [Deployment Guide](#deployment-guide)
 - [Tech Stack](#tech-stack)
@@ -645,7 +645,7 @@ vector_stores/
 - Detailed error logging
 - User-friendly error messages
 
-## Security Features
+## Security
 
 ### Authentication & Authorization
 

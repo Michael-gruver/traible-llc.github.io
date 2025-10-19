@@ -2,9 +2,9 @@
 
 A comprehensive document intelligence platform built with modern React, TypeScript, and Django. Traible enables users to upload documents, chat with AI about their content, and manage conversations with advanced security features.
 
-## 🚀 Features
+## Features
 
-### 🎯 **Core Features**
+### **Core Features**
 - **Document Intelligence**: Upload and analyze PDF documents with AI
 - **Interactive Chat**: Chat with AI about your document content
 - **Conversation Management**: Organize and manage chat conversations
@@ -12,14 +12,14 @@ A comprehensive document intelligence platform built with modern React, TypeScri
 - **Password Recovery**: Comprehensive password reset functionality
 - **Real-time Updates**: Live chat interface with message streaming
 
-### 🔐 **Security Features**
+### **Security Features**
 - **Rate Limiting**: Prevents brute force attacks
 - **Token Expiration**: Secure session and reset token management
 - **Password Strength Validation**: Enforces strong password requirements
 - **Email Privacy**: Secure email handling without revealing user existence
 - **Single Use Tokens**: Tokens invalidated after use
 
-### 🎨 **User Experience**
+### **User Experience**
 - **Modern UI**: Clean, responsive design with animations
 - **Dark/Light Theme**: Customizable theme support
 - **Password Strength Indicator**: Real-time password strength feedback
@@ -28,7 +28,7 @@ A comprehensive document intelligence platform built with modern React, TypeScri
 - **Accessibility**: Full keyboard navigation and screen reader support
 - **Offline Support**: Offline detection and graceful handling
 
-### 🛠 **Developer Experience**
+### **Developer Experience**
 - **TypeScript**: Full type safety across the application
 - **Reusable Components**: Modular, composable UI components
 - **Custom Hooks**: Clean separation of logic and UI
@@ -36,7 +36,7 @@ A comprehensive document intelligence platform built with modern React, TypeScri
 - **Code Quality**: ESLint, Prettier, and automated formatting
 - **Hot Reload**: Fast development with Vite
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
@@ -48,7 +48,7 @@ A comprehensive document intelligence platform built with modern React, TypeScri
 - [Deployment](#deployment)
 - [Contributing](#contributing)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -144,7 +144,7 @@ python manage.py collectstatic --noinput
 python manage.py migrate
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 traible-llc.github.io/
@@ -176,7 +176,7 @@ traible-llc.github.io/
 └── dist/                      # Frontend build output
 ```
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework**: React 18 with TypeScript
@@ -209,7 +209,7 @@ traible-llc.github.io/
 - **Testing**: Vitest, React Testing Library, Django Test Framework
 - **Package Management**: npm, pip
 
-## 📚 Features Documentation
+## Features Documentation
 
 ### Authentication System
 
@@ -281,7 +281,7 @@ Built on Radix UI primitives with custom styling:
 - **PasswordStrengthInput**: Enhanced password input with validation
 - **ThemeProvider**: Dark/light theme management
 
-## 🔌 API Documentation
+## API Documentation
 
 ### Authentication Endpoints
 
@@ -373,7 +373,7 @@ All API endpoints implement rate limiting:
 - **Chat Messages**: 100 requests per user per hour
 - **Document Upload**: 10 uploads per user per hour
 
-## 🔐 Security
+## Security
 
 ### Password Requirements
 
@@ -409,7 +409,7 @@ All API endpoints implement rate limiting:
 - **Metrics**: Success/failure rates tracked
 - **Rate Limiting**: Automatic protection against brute force
 
-## 🧪 Testing
+## Testing
 
 ### Frontend Testing
 
@@ -467,7 +467,7 @@ coverage report
 - [ ] Loading states and error messages
 - [ ] Offline functionality
 
-## 🚀 Deployment
+## Deployment
 
 ### Environment Variables
 
@@ -532,7 +532,7 @@ AWS_DEFAULT_REGION=us-east-1
 - [ ] Disaster recovery plan
 - [ ] Rollback procedures documented
 
-## 🤝 Contributing
+## Contributing
 
 ### Development Workflow
 
@@ -578,11 +578,11 @@ Follow conventional commits:
 - `test:` - Test additions or changes
 - `chore:` - Maintenance tasks
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support & Troubleshooting
+## Support & Troubleshooting
 
 ### Common Issues
 
